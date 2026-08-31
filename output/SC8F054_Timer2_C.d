@@ -1,0 +1,1 @@
+ SC8F054_Timer2_C.d  SC8F054_Timer2_C.p1:  H:/MyDownloads/说明书&测试报告/开发包/SC8F054开发包/SC8F054_DEMO_C/SC8F054_Timer_Demo/SC8F054_Timer2_C.c

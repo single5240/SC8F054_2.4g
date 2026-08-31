@@ -1,0 +1,3630 @@
+---- D:\QW\QW-项目\QW-247\程序\手环-中微-程序-16通道-2.4G\QW-247_SC8F054_V1.0_16M2T_16Channel\SC8F054_main.c ----------------------------------------------------------------------
+1:                #include <sc.h>	
+2:                #include <stdlib.h>	
+3:                #include "SC8F054_define.h"
+4:                #include "SC8F054_var.h"
+5:                
+6:                unsigned char soft_data[34] = {0}; // 接收数据数组
+7:                unsigned char key_data 		= 0;
+8:                
+9:                void main(void)
+10:               {	
+11:               	Init_System();
+  079F    25AA    CALL	0x5AA
+12:               	XL2400T_Init();
+  07A0    2435    CALL	0x435
+13:                   RF_Rx_Mode();
+  07A1    265C    CALL	0x65C
+14:               
+15:               	while(1)
+16:               	{
+17:               		RF_RX_Data(soft_data);
+  07A2    30A0    LDIA	0xA0
+  07A3    250D    CALL	0x50D
+18:               		Led_Color_Prg();
+  07A4    23C1    CALL	0x3C1
+19:               		//Key_Scan();
+20:               		//Key_Event();
+21:               		Rand_num();
+  07A5    278B    CALL	0x78B
+22:               		Sleep_Mode();
+  07A6    22D2    CALL	0x2D2
+  07A7    2FA2    JP	0x7A2
+23:               	}
+24:               }
+25:               
+26:               /**
+27:                * 函数功能： 随机数生成处理函数
+28:                * 功能说明： 该函数用于在满足特定条件时生成1~8范围内的有效随机数，存入控制结构体中，
+29:                *            采用「先初始化随机数种子，再生成随机数，最后做范围校验」的流程，保证随机数的有效性和唯一性。
+30:                */
+31:               void Rand_num(void)
+32:               {
+33:               	if((soft_recieve_control.rand_flag == 0) && (soft_recieve_control.randnum_flag == 1))
+  078B    1DB6    SNZB	0x36,3
+  078C    1EB6    SNZB	0x36,5
+  078D    0008    RET
+34:                   {	
+35:               		soft_recieve_control.rand_num  = (rand() % 8) + 1;
+  078E    25DC    CALL	0x5DC
+  078F    0857    LD	A,0x57
+  0790    3907    ANDIA	0x7
+  0791    3E01    ADDIA	0x1
+  0792    00C3    LD	0x43,A
+36:               		soft_recieve_control.rand_flag = 1;
+  0793    15B6    SETB	0x36,3
+  0794    0008    RET
+37:                   }
+38:               }
+39:               
+40:               /***********************************************
+41:               函数名称：Timer_Isr
+42:               函数功能：中断服务
+43:               入口参数：无
+44:               出口参数：无
+45:               ************************************************/
+46:               void interrupt INT_Isr()
+47:               {
+48:               	if(TMR2IF)
+  01CD    1283    CLRB	0x3,5
+  01CE    1C8D    SNZB	0xD,1
+  01CF    2AC9    JP	0x2C9
+49:               	{
+50:               		TMR2IF  = 0;	  // 清中断标志位
+  01D0    108D    CLRB	0xD,1
+  01D1    3014    LDIA	0x14
+51:               		//Uart_Send_Receive();
+52:               		led_control.count_1ms++;		
+  01D2    0AAE    INCR	0x2E
+53:               
+54:               		if(led_control.count_1ms >= 20) // 1ms
+  01D3    022E    SUBA	0x2E
+  01D4    1C03    SNZB	0x3,0
+  01D5    2AC9    JP	0x2C9
+55:               		{
+56:               			Key_Check_Time();
+  01D6    26B0    CALL	0x6B0
+57:               			led_control.count_1ms = 0;
+  01D7    01AE    CLR	0x2E
+58:               			if(soft_recieve_control.dalay_time)
+  01D8    083D    LD	A,0x3D
+  01D9    1D03    SNZB	0x3,2
+59:               			{
+60:               				soft_recieve_control.dalay_time--;
+  01DA    03BD    DECR	0x3D
+  01DB    3009    LDIA	0x9
+61:               			}
+62:               
+63:               			led_control.count_10ms++;
+  01DC    0AAF    INCR	0x2F
+64:               			if(led_control.count_10ms >= 9)     // 10ms
+  01DD    022F    SUBA	0x2F
+  01DE    1C03    SNZB	0x3,0
+  01DF    2AC9    JP	0x2C9
+65:               			{
+66:               				led_control.count_10ms = 0;
+  01E0    01AF    CLR	0x2F
+67:               
+68:               				switch(led_control.led_mode)
+  01E1    2AA4    JP	0x2A4
+69:               				{
+70:               					case LED_MODE_OFF:          // 熄灭
+71:               					{
+72:               						led_control.red_duty   = 0;
+  01E2    01A1    CLR	0x21
+73:               						led_control.green_duty = 0;
+  01E3    01A2    CLR	0x22
+74:               						led_control.blue_duty  = 0;
+  01E4    01A3    CLR	0x23
+  01E5    29F5    JP	0x1F5
+75:               						PWMCON0                = 0x00;	
+76:               						break;  
+77:               					}     
+78:               					case LED_MODE_ON:           // 常亮
+79:               					{
+80:               						led_control.red_duty   = led_control.set_red_duty;
+  01E6    0824    LD	A,0x24
+  01E7    00A1    LD	0x21,A
+81:               						led_control.green_duty = led_control.set_green_duty;
+  01E8    0825    LD	A,0x25
+  01E9    00A2    LD	0x22,A
+82:               						led_control.blue_duty  = led_control.set_blue_duty;
+  01EA    0826    LD	A,0x26
+  01EB    00A3    LD	0x23,A
+83:               						
+84:               						if((led_control.blue_duty == 0) && (led_control.green_duty == 0) && (led_control.red_duty == 0))
+  01EC    0823    LD	A,0x23
+  01ED    1D03    SNZB	0x3,2
+  01EE    2A06    JP	0x206
+  01EF    0822    LD	A,0x22
+  01F0    1D03    SNZB	0x3,2
+  01F1    2A06    JP	0x206
+  01F2    0821    LD	A,0x21
+  01F3    1D03    SNZB	0x3,2
+  01F4    2A06    JP	0x206
+85:               						{
+86:               							PWMCON0 = 0x00;     // 关闭PWM1，PWM2，PWM4这样才可以全部关闭
+  01F5    0195    CLR	0x15
+87:               						}
+  01F6    2AB2    JP	0x2B2
+88:               						else
+89:               						{
+90:               							PWMCON0 = 0x16;
+  01F7    3070    LDIA	0x70
+91:               						}
+92:               						break; 
+93:               					}
+94:               					case LED_MODE_SLOW:         // 慢闪 
+95:               					{		
+96:               						led_control.led_mode_count++;
+  01F8    0AA9    INCR	0x29
+97:               						if(led_control.led_mode_count >= 112)
+  01F9    0229    SUBA	0x29
+  01FA    1803    SZB	0x3,0
+98:               						{
+99:               							led_control.led_mode_count = 0; // 大约0.25s闪烁一次	
+  01FB    01A9    CLR	0x29
+100:              						}
+101:              
+102:              						if(led_control.led_mode_count < 56)
+  01FC    3038    LDIA	0x38
+  01FD    0229    SUBA	0x29
+  01FE    1803    SZB	0x3,0
+  01FF    2A09    JP	0x209
+103:              			  		  	{
+104:              							led_control.red_duty   = led_control.set_red_duty;
+  0200    0824    LD	A,0x24
+  0201    00A1    LD	0x21,A
+105:              							led_control.green_duty = led_control.set_green_duty;
+  0202    0825    LD	A,0x25
+  0203    00A2    LD	0x22,A
+106:              							led_control.blue_duty  = led_control.set_blue_duty;
+  0204    0826    LD	A,0x26
+  0205    00A3    LD	0x23,A
+107:              							PWMCON0 = 0x16;
+  0206    3016    LDIA	0x16
+  0207    0095    LD	0x15,A
+108:              						}
+  0208    2AB2    JP	0x2B2
+109:              						else
+110:              			          	{
+111:              							PWMCON0 = 0x00;
+  0209    0195    CLR	0x15
+  020A    2AA0    JP	0x2A0
+112:              							led_control.red_duty   = 0;
+  020B    3020    LDIA	0x20
+113:              							led_control.green_duty = 0;
+114:              							led_control.blue_duty  = 0;			
+115:              						} 
+116:              						break;  
+117:              					} 
+118:              					case LED_MODE_QUICK:           // 快闪 
+119:              					{	
+120:              						led_control.led_mode_count++;
+  020C    0AA9    INCR	0x29
+121:              						if(led_control.led_mode_count >= 32)
+  020D    0229    SUBA	0x29
+  020E    1803    SZB	0x3,0
+122:              						{
+123:              							led_control.led_mode_count = 0; // 大约0.25s闪烁一次	
+  020F    01A9    CLR	0x29
+124:              						}
+125:              						
+126:              						if(led_control.led_mode_count < 16)
+  0210    3010    LDIA	0x10
+  0211    0229    SUBA	0x29
+  0212    1803    SZB	0x3,0
+  0213    2A09    JP	0x209
+127:              			  		  	{
+128:              							PWMCON0 			   = 0x16;
+  0214    3016    LDIA	0x16
+  0215    0095    LD	0x15,A
+  0216    2A6B    JP	0x26B
+129:              							led_control.red_duty   = led_control.set_red_duty;
+130:              							led_control.green_duty = led_control.set_green_duty;
+131:              							led_control.blue_duty  = led_control.set_blue_duty;
+132:              						}
+133:              						else
+134:              			          	{
+135:              							PWMCON0 			   = 0x00;
+136:              							led_control.red_duty   = 0;
+137:              							led_control.green_duty = 0;
+138:              							led_control.blue_duty  = 0;			
+139:              						} 
+140:              						break;  
+141:              					}  
+142:              					case LED_MODE_STROBE:       // 频闪
+143:              					{
+144:              						PWMCON0 = 0x16;
+  0217    3016    LDIA	0x16
+  0218    0095    LD	0x15,A
+  0219    3070    LDIA	0x70
+145:              						led_control.led_mode_count++;
+  021A    0AA9    INCR	0x29
+146:              						if(led_control.led_mode_count >= 112)
+  021B    0229    SUBA	0x29
+  021C    1803    SZB	0x3,0
+147:              						{
+148:              							led_control.led_mode_count = 0; // 大约0.125s闪烁一次	
+  021D    01A9    CLR	0x29
+149:              						}
+150:              						
+151:              						if(led_control.led_mode_count / 7 % 2 == 0)
+  021E    3007    LDIA	0x7
+  021F    00F0    LD	0x70,A
+  0220    0829    LD	A,0x29
+  0221    267B    CALL	0x67B
+  0222    3901    ANDIA	0x1
+  0223    1903    SZB	0x3,2
+  0224    2A00    JP	0x200
+  0225    2A09    JP	0x209
+152:              			          	{
+153:              							led_control.red_duty   = led_control.set_red_duty;
+154:              							led_control.green_duty = led_control.set_green_duty;
+155:              							led_control.blue_duty  = led_control.set_blue_duty;
+156:              							PWMCON0                = 0x16;
+157:              						}
+158:              						else
+159:              			          	{
+160:              							PWMCON0                = 0x00;
+161:              							led_control.red_duty   = 0;
+162:              							led_control.green_duty = 0;
+163:              							led_control.blue_duty  = 0;
+164:              						}
+165:              						break; 
+166:              					}                         
+167:              					case LED_MODE_COLOR_CHANGE: 	  // 15色轮播
+168:              					{
+169:              						PWMCON0 = 0x16;
+  0226    3016    LDIA	0x16
+  0227    0095    LD	0x15,A
+  0228    3032    LDIA	0x32
+170:              						led_control.led_mode_count++;
+  0229    0AA9    INCR	0x29
+171:              						if(led_control.led_mode_count >= 50)
+  022A    0229    SUBA	0x29
+  022B    1C03    SNZB	0x3,0
+  022C    2AB2    JP	0x2B2
+  022D    3010    LDIA	0x10
+172:              						{
+173:              							led_control.led_mode_count = 0;
+  022E    01A9    CLR	0x29
+174:              							led_control.led_color++;
+  022F    0AA7    INCR	0x27
+175:              							if(led_control.led_color > 15)
+  0230    0227    SUBA	0x27
+  0231    1C03    SNZB	0x3,0
+  0232    2AB2    JP	0x2B2
+176:              							{
+177:              								led_control.led_color = 1;
+  0233    01A7    CLR	0x27
+  0234    0AA7    INCR	0x27
+  0235    2AB2    JP	0x2B2
+178:              							}
+179:              						} 
+180:              						break;
+181:              					}                   
+182:              					case LED_MODE_FADING:       	 // 呼吸灯
+183:              					{
+184:              						PWMCON0 = 0x16;
+  0236    3016    LDIA	0x16
+  0237    0095    LD	0x15,A
+185:              						if(led_control.breath_flag == 1) // 渐亮
+  0238    0B20    SZDECA	0x20
+  0239    2A72    JP	0x272
+186:              						{
+187:              							if(led_control.led_mode_count)
+  023A    0829    LD	A,0x29
+  023B    1903    SZB	0x3,2
+  023C    2AB2    JP	0x2B2
+188:              					        {
+189:              								led_control.breath_time++;
+  023D    0AAA    INCR	0x2A
+190:              					            if(led_control.breath_time >= led_control.breath_start_off_time)
+  023E    082B    LD	A,0x2B
+  023F    022A    SUBA	0x2A
+  0240    1C03    SNZB	0x3,0
+  0241    2AB2    JP	0x2B2
+191:              					            {
+192:              									led_control.breath_time = 0;
+  0242    01AA    CLR	0x2A
+193:              									led_control.led_mode_count--;
+  0243    03A9    DECR	0x29
+194:              					
+195:              					                if(led_control.red_duty >= led_control.set_red_duty)
+  0244    0824    LD	A,0x24
+  0245    0221    SUBA	0x21
+  0246    1C03    SNZB	0x3,0
+  0247    2A4A    JP	0x24A
+196:              					                {
+197:              					                	led_control.red_duty = led_control.set_red_duty;
+  0248    0824    LD	A,0x24
+  0249    2A4F    JP	0x24F
+198:              					                }
+199:              									else
+200:              									{
+201:              										led_control.red_duty = led_control.red_duty +  led_control.set_red_duty / led_control.breat_time_control;
+  024A    0833    LD	A,0x33
+  024B    00F0    LD	0x70,A
+  024C    0824    LD	A,0x24
+  024D    267B    CALL	0x67B
+  024E    0721    ADDA	0x21
+  024F    00A1    LD	0x21,A
+202:              									}
+203:              									if(led_control.green_duty >= led_control.set_green_duty)
+  0250    0825    LD	A,0x25
+  0251    0222    SUBA	0x22
+  0252    1C03    SNZB	0x3,0
+  0253    2A56    JP	0x256
+204:              									{
+205:              										led_control.green_duty = led_control.set_green_duty;
+  0254    0825    LD	A,0x25
+  0255    2A5B    JP	0x25B
+206:              									}
+207:              									else
+208:              									{
+209:              										led_control.green_duty = led_control.green_duty +  led_control.set_green_duty / led_control.breat_time_control;
+  0256    0833    LD	A,0x33
+  0257    00F0    LD	0x70,A
+  0258    0825    LD	A,0x25
+  0259    267B    CALL	0x67B
+  025A    0722    ADDA	0x22
+  025B    00A2    LD	0x22,A
+210:              									}
+211:              									if(led_control.blue_duty >= led_control.set_blue_duty)
+  025C    0826    LD	A,0x26
+  025D    0223    SUBA	0x23
+  025E    1C03    SNZB	0x3,0
+  025F    2A62    JP	0x262
+212:              									{
+213:              										led_control.blue_duty = led_control.set_blue_duty;
+  0260    0826    LD	A,0x26
+  0261    2A67    JP	0x267
+214:              									}
+215:              									else
+216:              									{
+217:              										led_control.blue_duty = led_control.blue_duty +  led_control.set_blue_duty / led_control.breat_time_control;
+  0262    0833    LD	A,0x33
+  0263    00F0    LD	0x70,A
+  0264    0826    LD	A,0x26
+  0265    267B    CALL	0x67B
+  0266    0723    ADDA	0x23
+  0267    00A3    LD	0x23,A
+218:              									}
+219:              					                if(led_control.led_mode_count <= 0)
+  0268    0829    LD	A,0x29
+  0269    1D03    SNZB	0x3,2
+  026A    2AB2    JP	0x2B2
+220:              					                {
+221:              										led_control.red_duty   = led_control.set_red_duty;
+  026B    0824    LD	A,0x24
+  026C    00A1    LD	0x21,A
+222:              										led_control.green_duty = led_control.set_green_duty;
+  026D    0825    LD	A,0x25
+  026E    00A2    LD	0x22,A
+223:              										led_control.blue_duty  = led_control.set_blue_duty;
+  026F    0826    LD	A,0x26
+  0270    00A3    LD	0x23,A
+  0271    2AB2    JP	0x2B2
+224:              					                }
+225:              					            }
+226:              					        }
+227:              					    }
+228:              					    else
+229:              					    {
+230:              							if(led_control.led_mode_count)
+  0272    0829    LD	A,0x29
+  0273    1903    SZB	0x3,2
+  0274    2AB2    JP	0x2B2
+231:              					        {
+232:              								led_control.breath_time++;
+  0275    0AAA    INCR	0x2A
+233:              					            if(led_control.breath_time >= led_control.breath_start_off_time)
+  0276    082B    LD	A,0x2B
+  0277    022A    SUBA	0x2A
+  0278    1C03    SNZB	0x3,0
+  0279    2AB2    JP	0x2B2
+234:              					            {
+235:              									led_control.breath_time = 0;
+  027A    01AA    CLR	0x2A
+236:              									led_control.led_mode_count--;
+  027B    03A9    DECR	0x29
+237:              					
+238:              					                if(led_control.red_duty <= 0)
+  027C    0821    LD	A,0x21
+  027D    1D03    SNZB	0x3,2
+  027E    2A81    JP	0x281
+239:              					                {
+240:              					                	led_control.red_duty = 0;
+  027F    01A1    CLR	0x21
+241:              					                }
+  0280    2A87    JP	0x287
+242:              									else
+243:              									{
+244:              										led_control.red_duty = led_control.red_duty - led_control.set_red_duty / led_control.breat_time_control;
+  0281    0833    LD	A,0x33
+  0282    00F0    LD	0x70,A
+  0283    0824    LD	A,0x24
+  0284    267B    CALL	0x67B
+  0285    0221    SUBA	0x21
+  0286    00A1    LD	0x21,A
+245:              									}
+246:              									
+247:              									if(led_control.green_duty <= 0)
+  0287    0822    LD	A,0x22
+  0288    1D03    SNZB	0x3,2
+  0289    2A8C    JP	0x28C
+248:              									{
+249:              										led_control.green_duty = 0;
+  028A    01A2    CLR	0x22
+250:              									}
+  028B    2A92    JP	0x292
+251:              									else
+252:              									{
+253:              										led_control.green_duty = led_control.green_duty - led_control.set_green_duty / led_control.breat_time_control;
+  028C    0833    LD	A,0x33
+  028D    00F0    LD	0x70,A
+  028E    0825    LD	A,0x25
+  028F    267B    CALL	0x67B
+  0290    0222    SUBA	0x22
+  0291    00A2    LD	0x22,A
+254:              									}
+255:              										
+256:              									if(led_control.blue_duty <= 0)
+  0292    0823    LD	A,0x23
+  0293    1D03    SNZB	0x3,2
+  0294    2A97    JP	0x297
+257:              									{
+258:              										led_control.blue_duty = 0;
+  0295    01A3    CLR	0x23
+259:              									}
+  0296    2A9D    JP	0x29D
+260:              									else
+261:              									{
+262:              										led_control.blue_duty = led_control.blue_duty - led_control.set_blue_duty / led_control.breat_time_control;
+  0297    0833    LD	A,0x33
+  0298    00F0    LD	0x70,A
+  0299    0826    LD	A,0x26
+  029A    267B    CALL	0x67B
+  029B    0223    SUBA	0x23
+  029C    00A3    LD	0x23,A
+263:              									}
+264:              										
+265:              					                if(led_control.led_mode_count <= 0)
+  029D    0829    LD	A,0x29
+  029E    1D03    SNZB	0x3,2
+  029F    2AB2    JP	0x2B2
+266:              					                {
+267:              										led_control.red_duty   = 0;
+  02A0    01A1    CLR	0x21
+268:              										led_control.green_duty = 0;
+  02A1    01A2    CLR	0x22
+269:              										led_control.blue_duty  = 0;
+  02A2    01A3    CLR	0x23
+  02A3    2AB2    JP	0x2B2
+  02A4    0828    LD	A,0x28
+  02A5    3EFF    ADDIA	0xFF
+  02A6    1C03    SNZB	0x3,0
+  02A7    2AB2    JP	0x2B2
+  02A8    0084    LD	0x4,A
+  02A9    3010    LDIA	0x10
+  02AA    0204    SUBA	0x4
+  02AB    1803    SZB	0x3,0
+  02AC    2AB2    JP	0x2B2
+  02AD    3007    LDIA	0x7
+  02AE    008A    LD	0xA,A
+  02AF    3039    LDIA	0x39
+  02B0    0704    ADDA	0x4
+  02B1    0082    LD	0x2,A
+  02B2    300A    LDIA	0xA
+270:              					                }
+271:              					            }
+272:              					        }
+273:              					    }
+274:              						break;
+275:              					}
+276:              					default:
+277:              				    break;               
+278:              				}
+279:              				
+280:              				led_control.count_100ms++;
+  02B3    0AB0    INCR	0x30
+281:              				if(led_control.count_100ms >= 10) 		// 100ms
+  02B4    0230    SUBA	0x30
+  02B5    1C03    SNZB	0x3,0
+  02B6    2AC9    JP	0x2C9
+  02B7    300C    LDIA	0xC
+282:              				{
+283:              					led_control.count_100ms = 0;
+  02B8    01B0    CLR	0x30
+284:              					led_control.count_1000ms++;
+  02B9    0AB1    INCR	0x31
+285:              					
+286:              					if(led_control.count_1000ms > 11) // 1300ms在进行雪花轮闪功能1.3S刷新随机数
+  02BA    0231    SUBA	0x31
+  02BB    1C03    SNZB	0x3,0
+  02BC    2ABF    JP	0x2BF
+287:              					{
+288:              						soft_recieve_control.rand_flag = 0;
+  02BD    11B6    CLRB	0x36,3
+289:              						led_control.count_1000ms = 0;
+  02BE    01B1    CLR	0x31
+290:              					}
+291:              					
+292:              					if(sleep_control.sleep_count < 20000)
+  02BF    304E    LDIA	0x4E
+  02C0    0279    SUBA	0x79
+  02C1    3020    LDIA	0x20
+  02C2    1903    SZB	0x3,2
+  02C3    0278    SUBA	0x78
+  02C4    1803    SZB	0x3,0
+  02C5    2AC9    JP	0x2C9
+293:              					{
+294:              						sleep_control.sleep_count++; // 睡眠计数
+  02C6    0AF8    INCR	0x78
+  02C7    1903    SZB	0x3,2
+  02C8    0AF9    INCR	0x79
+  02C9    0876    LD	A,0x76
+  02CA    008A    LD	0xA,A
+  02CB    0875    LD	A,0x75
+  02CC    0084    LD	0x4,A
+  02CD    0E74    SWAPA	0x74
+  02CE    0083    LD	0x3,A
+  02CF    0EFE    SWAPR	0x7E
+  02D0    0E7E    SWAPA	0x7E
+  02D1    0009    RETI
+295:              					}
+296:              				}
+297:              			}
+298:              		}
+299:              	}
+300:              }
+301:              
+302:              
+303:              
+304:              
+305:              
+306:              
+307:              
+---- D:\QW\QW-项目\QW-247\程序\手环-中微-程序-16通道-2.4G\QW-247_SC8F054_V1.0_16M2T_16Channel\SC8F054_xl2400t.c ----------------------------------------------------------------------
+1:                #include "SC8F054_define.h"
+2:                #include "SC8F054_var.h"
+3:                #include "xl2400t.h"
+4:                #include <sc.h>
+5:                
+6:                unsigned char RF_Test_Adrress[5]={0x23, 0x24, 0x25, 0x26, 0x27}; // RF地址
+7:                
+8:                /*************************************************
+9:                 * SPI写入一个字节的数据
+10:               **************************************************/
+11:               static void RF_SPI_Write_Byte(unsigned char buff)
+12:               {
+13:               	unsigned char i = 0;
+  06DE    01CC    CLR	0x4C
+14:               	TRISB  = 0B00000000;
+  06DF    0185    CLR	0x5
+15:                   for(i = 0; i < 8; i++)
+  06E0    01CC    CLR	0x4C
+16:               	{
+17:                       SCK = 0;
+  06E1    1206    CLRB	0x6,4
+18:               		
+19:                       if(buff & 0x80)
+  06E2    1FCB    SNZB	0x4B,7
+  06E3    2EE6    JP	0x6E6
+20:               		{
+21:                           DATA = 1;
+  06E4    1686    SETB	0x6,5
+22:               		}
+  06E5    2EE7    JP	0x6E7
+23:                       else
+24:               		{
+25:                           DATA = 0;
+  06E6    1286    CLRB	0x6,5
+26:               		}
+27:               		
+28:                       buff = buff << 1;
+  06E7    1003    CLRB	0x3,0
+  06E8    0DCB    RLCR	0x4B
+29:                       SCK = 1;
+  06E9    1606    SETB	0x6,4
+  06EA    3008    LDIA	0x8
+  06EB    0ACC    INCR	0x4C
+  06EC    024C    SUBA	0x4C
+  06ED    1C03    SNZB	0x3,0
+  06EE    2EE1    JP	0x6E1
+30:                   }
+31:               	
+32:                   DATA = 1;
+  06EF    1686    SETB	0x6,5
+33:                   SCK = 0;
+  06F0    1206    CLRB	0x6,4
+  06F1    0008    RET
+34:               }
+35:               
+36:               /************************************************
+37:                * SPI读取一个字节的数据
+38:                * 返回值: 读取到的数据
+39:               *************************************************/
+40:               static unsigned char RF_SPI_Read_Byte(void)
+41:               {
+42:               	TRISB  = 0B00100000;
+  0717    3020    LDIA	0x20
+  0718    0085    LD	0x5,A
+43:                   unsigned char  buff = 0;
+  0719    01CB    CLR	0x4B
+44:               	unsigned char  i    = 0;
+45:               
+46:                   for(i = 0; i < 8; i++)
+  071A    01CC    CLR	0x4C
+47:                   {
+48:                       SCK = 0;
+  071B    1206    CLRB	0x6,4
+49:                       buff = buff << 1;
+  071C    1003    CLRB	0x3,0
+  071D    0DCB    RLCR	0x4B
+50:                       SCK = 1;
+  071E    1606    SETB	0x6,4
+51:                       if(DATA)
+  071F    1A86    SZB	0x6,5
+52:               		{
+53:               			buff |= 0x01;
+  0720    144B    SETB	0x4B,0
+  0721    3008    LDIA	0x8
+  0722    0ACC    INCR	0x4C
+  0723    024C    SUBA	0x4C
+  0724    1C03    SNZB	0x3,0
+  0725    2F1B    JP	0x71B
+54:               		}         
+55:                   }
+56:                   SCK = 0;
+  0726    1206    CLRB	0x6,4
+57:                   return buff;
+  0727    084B    LD	A,0x4B
+  0728    0008    RET
+58:               }
+59:               
+60:               /********************************************************************
+61:                * 向XL2400T的寄存器写入一个字节的数据
+62:                * 参数：RF_Reg 写指令|寄存器地址
+63:                * 参数：W_Data 写入的数据
+64:               *********************************************************************/
+65:               void RF_SPI_Write_Reg(unsigned char RF_Reg, unsigned char W_Data)
+66:               {
+67:               	CSN = 0;
+  07B8    1006    CLRB	0x6,0
+68:               	RF_SPI_Write_Byte(RF_Reg); // 写入地址
+  07B9    26DD    CALL	0x6DD
+69:               	RF_SPI_Write_Byte(W_Data); // 写入数据
+  07BA    084D    LD	A,0x4D
+  07BB    26DD    CALL	0x6DD
+70:               	CSN = 1;
+  07BC    1406    SETB	0x6,0
+  07BD    0008    RET
+71:               }
+72:               
+73:               /*******************************************************
+74:                * 从XL2400T寄存器读取一个字节的数据
+75:                * 参数: 读指令|寄存器地址
+76:                * 返回值：读取到的数据
+77:               ********************************************************/
+78:               unsigned char RF_SPI_Read_Reg(unsigned char RF_Reg)
+79:               {
+80:               	unsigned char rTemp = 0;
+81:               	CSN = 0;
+  07B1    1006    CLRB	0x6,0
+82:               	RF_SPI_Write_Byte(RF_Reg);  // 写入地址+读取指令
+  07B2    26DD    CALL	0x6DD
+83:               	rTemp = RF_SPI_Read_Byte(); // 读取数据
+  07B3    2717    CALL	0x717
+  07B4    00CE    LD	0x4E,A
+84:               	CSN = 1;
+  07B5    1406    SETB	0x6,0
+85:               	return rTemp;
+  07B6    0008    RET
+86:               }
+87:               
+88:               /*****************************************
+89:                * 向XL2400T的寄存器写入多个数据
+90:                * 参数: RFAdress 写取指令|寄存器地址
+91:                * 参数：*pBuff   需要写入数据的地址
+92:                * 参数：Len      需要写入的长度
+93:               ******************************************/
+94:               void RF_Write_Buff(unsigned char RF_Reg, unsigned char *pBuff, unsigned char Len)
+95:               {
+96:               	unsigned char rTemp = 0;
+97:               	unsigned char i 	= 0;
+  06C9    01D2    CLR	0x52
+98:               
+99:               	CSN = 0;
+  06CA    1006    CLRB	0x6,0
+100:              	RF_SPI_Write_Byte(RF_Reg);
+  06CB    26DD    CALL	0x6DD
+101:              	for(i = 0; i < Len; i++)
+  06CC    01D2    CLR	0x52
+  06CD    084E    LD	A,0x4E
+  06CE    0252    SUBA	0x52
+  06CF    1803    SZB	0x3,0
+  06D0    2EDB    JP	0x6DB
+102:              	{
+103:              		rTemp = pBuff[i];
+  06D1    0852    LD	A,0x52
+  06D2    074D    ADDA	0x4D
+  06D3    00CF    LD	0x4F,A
+  06D4    0084    LD	0x4,A
+  06D5    1383    CLRB	0x3,7
+  06D6    0800    LD	A,0x0
+  06D7    00D1    LD	0x51,A
+104:                      RF_SPI_Write_Byte(rTemp);
+  06D8    26DD    CALL	0x6DD
+  06D9    0AD2    INCR	0x52
+  06DA    2ECD    JP	0x6CD
+105:              	}
+106:              	CSN = 1;
+  06DB    1406    SETB	0x6,0
+  06DC    0008    RET
+107:              }
+108:              
+109:              /*****************************************
+110:               * 从XL2400T的寄存器读取多个数据
+111:               * 参数: RFAdress 读取指令|寄存器地址
+112:               * 参数：*pBuff   读取到的数据存放的地址
+113:               * 参数：Len      需要读取的长度
+114:              ******************************************/
+115:              void RF_Read_Buff(unsigned char RF_Reg, unsigned char *pBuff, unsigned char Len)
+116:              {
+117:              	unsigned char i=0;
+118:              	CSN = 0;
+  06F3    1006    CLRB	0x6,0
+119:              	RF_SPI_Write_Byte(RF_Reg);
+  06F4    26DD    CALL	0x6DD
+120:              	for(i = 0 ; i < Len ; i++)
+  06F5    01D1    CLR	0x51
+  06F6    084E    LD	A,0x4E
+  06F7    0251    SUBA	0x51
+  06F8    1803    SZB	0x3,0
+  06F9    2F03    JP	0x703
+121:              	{
+122:              		pBuff[i] = RF_SPI_Read_Byte();
+  06FA    0851    LD	A,0x51
+  06FB    074D    ADDA	0x4D
+  06FC    00CF    LD	0x4F,A
+  06FD    0084    LD	0x4,A
+  06FE    2717    CALL	0x717
+  06FF    1383    CLRB	0x3,7
+  0700    0080    LD	0x0,A
+  0701    0AD1    INCR	0x51
+  0702    2EF6    JP	0x6F6
+123:              	}
+124:              	CSN = 1;
+  0703    1406    SETB	0x6,0
+  0704    0008    RET
+125:              }
+126:              
+127:              /***********************************************
+128:               * 拉高软件CE
+129:              ************************************************/
+130:              void RF_CE_High(void)
+131:              {
+132:              	RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0xEF);
+  07C2    30EF    LDIA	0xEF
+  07C3    00CD    LD	0x4D,A
+  07C4    3020    LDIA	0x20
+  07C5    2FB7    JP	0x7B7
+133:              }
+134:              
+135:              /**********************
+136:               * 拉低软件CE
+137:              **********************/
+138:              void RF_CE_Low(void)
+139:              {
+140:              	RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0xEE);
+  07BE    30EE    LDIA	0xEE
+  07BF    00CD    LD	0x4D,A
+  07C0    3020    LDIA	0x20
+  07C1    2FB7    JP	0x7B7
+141:              }
+142:              
+143:              /********************************************
+144:               * 清除中断标记位
+145:               * 清空TX-FIFO
+146:               * 清空RX-FIFO
+147:              *********************************************/
+148:              void RF_Refresh_State(void)
+149:              {
+150:              	RF_SPI_Write_Reg(W_REGISTER + RF_STATUS, 0x70);
+  0765    3070    LDIA	0x70
+  0766    1283    CLRB	0x3,5
+  0767    00CD    LD	0x4D,A
+  0768    3027    LDIA	0x27
+  0769    27B7    CALL	0x7B7
+151:              	RF_SPI_Write_Reg(FLUSH_TX, CMD_NOP);
+  076A    30FF    LDIA	0xFF
+  076B    00CD    LD	0x4D,A
+  076C    30E1    LDIA	0xE1
+  076D    27B7    CALL	0x7B7
+152:              	RF_SPI_Write_Reg(FLUSH_RX, CMD_NOP);
+  076E    30FF    LDIA	0xFF
+  076F    00CD    LD	0x4D,A
+  0770    30E2    LDIA	0xE2
+  0771    2FB7    JP	0x7B7
+153:              }
+154:              
+155:              /**********************************
+156:               * 设置通讯频点
+157:               * 参数：频点
+158:              **********************************/
+159:              void RF_Set_Chn(unsigned char Chn)
+160:              {
+161:                 unsigned temp = 0;
+162:                 temp  = RF_SPI_Read_Reg(EN_AA);
+  0697    3001    LDIA	0x1
+  0698    27B0    CALL	0x7B0
+  0699    00D0    LD	0x50,A
+  069A    01D1    CLR	0x51
+163:                 temp &= ~(1 << 6);
+  069B    1350    CLRB	0x50,6
+164:                 RF_SPI_Write_Reg(W_REGISTER + EN_AA, temp);
+  069C    0850    LD	A,0x50
+  069D    00CD    LD	0x4D,A
+  069E    3021    LDIA	0x21
+  069F    27B7    CALL	0x7B7
+165:                 RF_SPI_Write_Reg(W_REGISTER + RF_CH, Chn + 0x60);
+  06A0    084F    LD	A,0x4F
+  06A1    3E60    ADDIA	0x60
+  06A2    00CD    LD	0x4D,A
+  06A3    3025    LDIA	0x25
+  06A4    27B7    CALL	0x7B7
+  06A5    3001    LDIA	0x1
+166:                 temp  = 0;
+  06A6    01D0    CLR	0x50
+  06A7    01D1    CLR	0x51
+167:                 temp  = RF_SPI_Read_Reg(0x00 | 0x01);
+  06A8    27B0    CALL	0x7B0
+  06A9    00D0    LD	0x50,A
+  06AA    01D1    CLR	0x51
+168:                 temp |= (1<<6);
+  06AB    1750    SETB	0x50,6
+169:                 RF_SPI_Write_Reg(W_REGISTER + EN_AA, temp);							
+  06AC    0850    LD	A,0x50
+  06AD    00CD    LD	0x4D,A
+  06AE    3021    LDIA	0x21
+  06AF    2FB7    JP	0x7B7
+170:              }
+171:              
+172:              /********************************************
+173:               * 配置发送与接收地址
+174:              *********************************************/
+175:              void RF_Set_Address(unsigned char *AddrBuff)
+176:              {
+177:              	RF_Write_Buff(W_REGISTER + TX_ADDR,    AddrBuff, 5); /*配置发送地址*/
+  0780    00CD    LD	0x4D,A
+  0781    3005    LDIA	0x5
+  0782    00CE    LD	0x4E,A
+  0783    3030    LDIA	0x30
+  0784    26C8    CALL	0x6C8
+178:              	RF_Write_Buff(W_REGISTER + RX_ADDR_P0, AddrBuff, 5); /*配置接收数据通道0的地址*/
+  0785    0853    LD	A,0x53
+  0786    00CD    LD	0x4D,A
+  0787    3005    LDIA	0x5
+  0788    00CE    LD	0x4E,A
+  0789    302A    LDIA	0x2A
+  078A    2EC8    JP	0x6C8
+179:              }
+180:              
+181:              /**********************
+182:               * 基带复位
+183:              **********************/
+184:              void RF_Reset(void)
+185:              {
+186:                 RF_SPI_Write_Reg(W_REGISTER + CFG_TOP,0xEA);
+187:                 Delay_ms(1);
+188:                 RF_SPI_Write_Reg(W_REGISTER + CFG_TOP,0xEE);
+189:                 Delay_ms(1);
+190:              }
+191:              
+192:              /***************************************
+193:               * 配置发射功率
+194:              ****************************************/
+195:              void RF_Set_Power(unsigned char Power)
+196:              {
+197:              	unsigned char Power_Buff[3]={0};
+  0707    01D4    CLR	0x54
+  0708    01D5    CLR	0x55
+  0709    01D6    CLR	0x56
+198:              	RF_Read_Buff(RF_SETUP, Power_Buff, 2);
+  070A    00CD    LD	0x4D,A
+  070B    3002    LDIA	0x2
+  070C    00CE    LD	0x4E,A
+  070D    3006    LDIA	0x6
+  070E    26F2    CALL	0x6F2
+199:              	Power_Buff[1] = Power;
+  070F    0853    LD	A,0x53
+  0710    00D5    LD	0x55,A
+200:              	RF_Write_Buff(W_REGISTER + RF_SETUP, Power_Buff ,2);
+  0711    3054    LDIA	0x54
+  0712    00CD    LD	0x4D,A
+  0713    3002    LDIA	0x2
+  0714    00CE    LD	0x4E,A
+  0715    3026    LDIA	0x26
+  0716    2EC8    JP	0x6C8
+201:              }
+202:              
+203:              /*************************
+204:               * 配置RF为发送模式
+205:              *************************/
+206:              void RF_Tx_Mode(void)
+207:              {
+208:                 unsigned char Mode_Buff[3] = {0};
+209:                 Mode_Buff[0] = 0xee; // 启用CRC校验 2字节
+210:                 Mode_Buff[1] = 0x80;
+211:                 RF_Write_Buff(W_REGISTER + CFG_TOP, Mode_Buff, 2);
+212:                 RF_Read_Buff(CFG_TOP, Mode_Buff, 3);
+213:                 RF_Refresh_State();
+214:                 Delay_ms(10);
+215:                 RF_Set_Chn(76);
+216:              }
+217:              
+218:              /************************
+219:               * 配置RF为接收模式
+220:              ************************/
+221:              void RF_Rx_Mode(void)
+222:              {
+223:                 unsigned char Mode_Buff[3] = {0};
+  065D    01D3    CLR	0x53
+  065E    01D4    CLR	0x54
+  065F    01D5    CLR	0x55
+224:                 Mode_Buff[0] = 0xee; // 启用CRC校验 2字节
+  0660    00D3    LD	0x53,A
+225:                 Mode_Buff[1] = 0xc0; 
+  0661    30C0    LDIA	0xC0
+  0662    00D4    LD	0x54,A
+226:                 RF_Write_Buff(W_REGISTER + CFG_TOP, Mode_Buff, 2);
+  0663    3053    LDIA	0x53
+  0664    00CD    LD	0x4D,A
+  0665    3002    LDIA	0x2
+  0666    00CE    LD	0x4E,A
+  0667    3020    LDIA	0x20
+  0668    26C8    CALL	0x6C8
+227:                 RF_Read_Buff(CFG_TOP, Mode_Buff, 3);
+  0669    3053    LDIA	0x53
+  066A    00CD    LD	0x4D,A
+  066B    3003    LDIA	0x3
+  066C    00CE    LD	0x4E,A
+  066D    3000    LDIA	0x0
+  066E    26F2    CALL	0x6F2
+228:                 RF_Refresh_State();
+  066F    2765    CALL	0x765
+229:                 RF_CE_High();
+  0670    27C2    CALL	0x7C2
+230:                 RF_Read_Buff(CFG_TOP, Mode_Buff, 3);
+  0671    3053    LDIA	0x53
+  0672    00CD    LD	0x4D,A
+  0673    3003    LDIA	0x3
+  0674    00CE    LD	0x4E,A
+  0675    3000    LDIA	0x0
+  0676    26F2    CALL	0x6F2
+231:                 Delay_ms(10);
+  0677    300A    LDIA	0xA
+  0678    2795    CALL	0x795
+232:                 RF_Set_Chn(76-1);
+  0679    304B    LDIA	0x4B
+  067A    2E96    JP	0x696
+233:              }
+234:              
+235:              unsigned char color_t = 0;
+236:              unsigned char RF_TX_Data(unsigned char* tx_buff)
+237:              {
+238:              	unsigned char Temp = 0;
+239:              	
+240:                  RF_Refresh_State();               	 // 刷新状态
+241:              	color_t++;
+242:              	if(color_t > 15)
+243:              		color_t = 0;
+244:              
+245:              	tx_buff[0] = (0xff & 0x0ff);        // 选中全部手环（通道）
+246:              	tx_buff[1] = ((0xff >> 8) & 0x0ff);
+247:              	tx_buff[2] = ((color_t << 4) | 2);  // 颜色+模式   
+248:              	tx_buff[3] = (0x20);                    
+249:              	tx_buff[4] = ((tx_buff[0] + tx_buff[1] + tx_buff[2] + tx_buff[3]) & 0x0ff);                
+250:              	RF_Write_Buff(W_TX_PLOAD, tx_buff, 5); // 填写发送内容
+251:              	
+252:              	UART_Send_Byte(tx_buff[0]); 
+253:              	UART_Send_Byte(tx_buff[1]); 
+254:              	UART_Send_Byte(tx_buff[2]); 
+255:              	UART_Send_Byte(tx_buff[3]); 
+256:              	UART_Send_Byte(tx_buff[4]); 
+257:              	
+258:              	RF_CE_High(); // 拉高CE
+259:              	Delay_1ms();
+260:              	RF_CE_Low();  // 拉低CE
+261:              	Delay_1ms();
+262:              	
+263:              	Temp = RF_SPI_Read_Reg(RF_STATUS);
+264:              	UART_Send_Byte(Temp); 
+265:              
+266:              	// 获取状态寄存器的状态
+267:              	if(RF_SPI_Read_Reg(RF_STATUS) & TX_DS) // 触发发送中断
+268:              	{
+269:              		RF_Refresh_State(); // 清空FIFO 清除中断标记位
+270:              		return 0x20;
+271:              	}
+272:              	else
+273:              	{
+274:              		RF_Refresh_State(); // 清空FIFO 清除中断标记位
+275:              		return 0;	
+276:              	}
+277:              }
+278:              
+279:              unsigned char key_count = 0;
+280:              /*************************************************
+281:               * 接收数据函数
+282:               * 参数：接收到的数据 存放的地址
+283:               * 返回值：接收到数据返回1 没接收到数据返回0
+284:              **************************************************/
+285:              unsigned char RF_RX_Data(unsigned char* rx_buff)
+286:              {
+287:              	TRISB  = 0B00000000;
+  050E    0185    CLR	0x5
+288:              	if(key_control.key_rec_flag_pb == 0)
+  050F    1B69    SZB	0x69,6
+  0510    2D3D    JP	0x53D
+289:              	{
+290:              		if(RF_SPI_Read_Reg(RF_STATUS) & RX_DR) // 触发接收中断
+  0511    3007    LDIA	0x7
+  0512    27B0    CALL	0x7B0
+  0513    3940    ANDIA	0x40
+  0514    1903    SZB	0x3,2
+  0515    2D3D    JP	0x53D
+291:              		{
+292:              			RF_CE_Low(); // 拉低CE
+  0516    27BE    CALL	0x7BE
+293:              			soft_recieve_control.data_length_count = RF_SPI_Read_Reg(R_RX_PL_WID);
+  0517    3060    LDIA	0x60
+  0518    27B0    CALL	0x7B0
+  0519    00BC    LD	0x3C,A
+294:              			CSN = 0;
+  051A    1006    CLRB	0x6,0
+295:              			RF_SPI_Write_Byte(R_RX_PLOAD);
+  051B    3061    LDIA	0x61
+  051C    26DD    CALL	0x6DD
+296:              			rx_buff[0] = RF_SPI_Read_Byte();
+  051D    0856    LD	A,0x56
+  051E    0084    LD	0x4,A
+  051F    2717    CALL	0x717
+  0520    1383    CLRB	0x3,7
+  0521    0080    LD	0x0,A
+297:              			rx_buff[1] = RF_SPI_Read_Byte();
+  0522    0A56    INCA	0x56
+  0523    0084    LD	0x4,A
+  0524    2717    CALL	0x717
+  0525    1383    CLRB	0x3,7
+  0526    0080    LD	0x0,A
+298:              			rx_buff[2] = RF_SPI_Read_Byte();
+  0527    0856    LD	A,0x56
+  0528    3E02    ADDIA	0x2
+  0529    0084    LD	0x4,A
+  052A    2717    CALL	0x717
+  052B    1383    CLRB	0x3,7
+  052C    0080    LD	0x0,A
+299:              			rx_buff[3] = RF_SPI_Read_Byte();
+  052D    0856    LD	A,0x56
+  052E    3E03    ADDIA	0x3
+  052F    0084    LD	0x4,A
+  0530    2717    CALL	0x717
+  0531    1383    CLRB	0x3,7
+  0532    0080    LD	0x0,A
+300:              			rx_buff[4] = RF_SPI_Read_Byte();
+  0533    0856    LD	A,0x56
+  0534    3E04    ADDIA	0x4
+  0535    0084    LD	0x4,A
+  0536    2717    CALL	0x717
+  0537    1383    CLRB	0x3,7
+  0538    0080    LD	0x0,A
+301:              			CSN = 1; 
+  0539    1406    SETB	0x6,0
+302:              			Soft_Decode(); 				  // 接受码处理函数
+  053A    2032    CALL	0x32
+303:              			RF_Refresh_State();               // 清空FIFO 清除中断标记位
+  053B    2765    CALL	0x765
+304:              			RF_CE_High();
+  053C    27C2    CALL	0x7C2
+305:              		}
+306:              	}
+307:              
+308:              	Delay_3us();
+  053D    2772    CALL	0x772
+309:              	TRISB  = 0B00000001;
+  053E    3001    LDIA	0x1
+  053F    0085    LD	0x5,A
+310:              	Delay_3us();
+  0540    2772    CALL	0x772
+311:              	Key_Scan();
+  0541    2544    CALL	0x544
+312:              	Key_Event();
+  0542    2634    CALL	0x634
+313:              	Delay_3us();
+  0543    2F72    JP	0x772
+314:              }
+315:              
+316:              
+317:              void XL2400T_Init(void)
+318:              {
+319:              	unsigned char dat = 0;
+320:              	Delay_ms(150);
+  0435    3096    LDIA	0x96
+  0436    2795    CALL	0x795
+321:              
+322:              	RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0x02);
+  0437    3002    LDIA	0x2
+  0438    00CD    LD	0x4D,A
+  0439    3020    LDIA	0x20
+  043A    27B7    CALL	0x7B7
+323:              	Delay_1ms();
+  043B    27C6    CALL	0x7C6
+324:                  RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0x3e);
+  043C    303E    LDIA	0x3E
+  043D    00CD    LD	0x4D,A
+  043E    3020    LDIA	0x20
+  043F    27B7    CALL	0x7B7
+325:              	Delay_1ms();
+  0440    27C6    CALL	0x7C6
+326:              
+327:              	unsigned char gRfBuffer[8] = {0};
+  0441    3057    LDIA	0x57
+  0442    0084    LD	0x4,A
+  0443    3008    LDIA	0x8
+  0444    00FF    LD	0x7F,A
+  0445    1383    CLRB	0x3,7
+  0446    0180    CLR	0x0
+  0447    0A84    INCR	0x4
+  0448    0BFF    SZDECR	0x7F
+  0449    2C45    JP	0x445
+328:              	gRfBuffer[5] = ((gRfBuffer[5] & 0xff) | 0x6d);
+  044A    085C    LD	A,0x5C
+  044B    386D    ORIA	0x6D
+  044C    00DC    LD	0x5C,A
+329:              	RF_Read_Buff(PGA_SETTING, gRfBuffer, 5);
+  044D    3057    LDIA	0x57
+  044E    00CD    LD	0x4D,A
+  044F    3005    LDIA	0x5
+  0450    00CE    LD	0x4E,A
+  0451    300F    LDIA	0xF
+  0452    26F2    CALL	0x6F2
+330:              	Delay_ms(1);
+  0453    3001    LDIA	0x1
+  0454    2795    CALL	0x795
+331:              	gRfBuffer[0] = 0x44;
+  0455    3044    LDIA	0x44
+  0456    00D7    LD	0x57,A
+332:              	gRfBuffer[1] = 0x3E;
+  0457    303E    LDIA	0x3E
+  0458    00D8    LD	0x58,A
+333:              	gRfBuffer[2] = 0x38;
+  0459    3038    LDIA	0x38
+  045A    00D9    LD	0x59,A
+334:              	gRfBuffer[3] = 0x32;
+  045B    3032    LDIA	0x32
+  045C    00DA    LD	0x5A,A
+335:              	gRfBuffer[4] = 0x2A;
+  045D    302A    LDIA	0x2A
+  045E    00DB    LD	0x5B,A
+336:              	RF_Write_Buff(W_REGISTER + PGA_SETTING, gRfBuffer, 5);
+  045F    3057    LDIA	0x57
+  0460    00CD    LD	0x4D,A
+  0461    3005    LDIA	0x5
+  0462    00CE    LD	0x4E,A
+  0463    302F    LDIA	0x2F
+  0464    26C8    CALL	0x6C8
+337:              	Delay_1ms();
+  0465    27C6    CALL	0x7C6
+338:              
+339:              	RF_SPI_Write_Reg(W_REGISTER + SETUP_AW,  0xAF);      // 地址长度5字节
+  0466    30AF    LDIA	0xAF
+  0467    00CD    LD	0x4D,A
+  0468    3023    LDIA	0x23
+  0469    27B7    CALL	0x7B7
+340:              	RF_Set_Address(RF_Test_Adrress);                     // 地址
+  046A    30C2    LDIA	0xC2
+  046B    277F    CALL	0x77F
+341:              	RF_SPI_Write_Reg(W_REGISTER + RF_SETUP,  C_DR_250K); // 
+  046C    3022    LDIA	0x22
+  046D    00CD    LD	0x4D,A
+  046E    3026    LDIA	0x26
+  046F    27B7    CALL	0x7B7
+  0470    3022    LDIA	0x22
+342:                  RF_SPI_Write_Reg(W_REGISTER + EN_RXADDR, 0x01);      // 启用数据通道0
+  0471    01CD    CLR	0x4D
+  0472    0ACD    INCR	0x4D
+  0473    27B7    CALL	0x7B7
+343:              	RF_SPI_Write_Reg(W_REGISTER + RX_PW_PX,  5);         // 配置5个接收数据
+  0474    3005    LDIA	0x5
+  0475    00CD    LD	0x4D,A
+  0476    3031    LDIA	0x31
+  0477    27B7    CALL	0x7B7
+  0478    3021    LDIA	0x21
+344:              	RF_SPI_Write_Reg(W_REGISTER + EN_AA,     0x00);      // 配置应答数据通道道
+  0479    01CD    CLR	0x4D
+  047A    27B7    CALL	0x7B7
+  047B    303C    LDIA	0x3C
+345:                  RF_SPI_Write_Reg(W_REGISTER + DYNPD,     0x00);      // 关闭所有数据通道的动态长度功能
+  047C    01CD    CLR	0x4D
+  047D    27B7    CALL	0x7B7
+346:              	RF_SPI_Write_Reg(W_REGISTER + FEATURE,   0x18);      // 不使能动态长度功能
+  047E    3018    LDIA	0x18
+  047F    00CD    LD	0x4D,A
+  0480    303D    LDIA	0x3D
+  0481    27B7    CALL	0x7B7
+347:              	RF_SPI_Write_Reg(W_REGISTER + SETUP_RETR,0x33);      // 重传3次 重传间隔1ms
+  0482    3033    LDIA	0x33
+  0483    00CD    LD	0x4D,A
+  0484    3024    LDIA	0x24
+  0485    27B7    CALL	0x7B7
+348:              	RF_Set_Power(RF_TX_Power);
+  0486    300C    LDIA	0xC
+  0487    2F05    JP	0x705
+349:              }
+350:              
+351:              
+352:              
+353:              
+---- D:\QW\QW-项目\QW-247\程序\手环-中微-程序-16通道-2.4G\QW-247_SC8F054_V1.0_16M2T_16Channel\SC8F054_init.c ----------------------------------------------------------------------
+1:                #include <sc.h>					
+2:                #include "SC8F054_define.h"	
+3:                #include "SC8F054_var.h"	
+4:                #include "xl2400t.h"
+5:                
+6:                
+7:                KEY_CONTROL 		 key_control 		  = {0,0,0,0,0,0,0,0,0};
+8:                LED_CONTROL 		 led_control 		  = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,ADD_DAT};
+9:                SOFT_RECIEVE_CONTROL soft_recieve_control = {0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0};
+10:               SLEEP_CONTROL        sleep_control        = {1,0,0};
+11:               
+12:               void Init_System(void)
+13:               {
+14:               	asm("nop");
+15:               	OSCCON     = 0x70;	   // 16MHZ,内部振荡器用作系统时钟,CONFIG关闭WDT时必需软件打开WDT
+  05AB    3070    LDIA	0x70
+  05AC    1283    CLRB	0x3,5
+  05AD    0094    LD	0x14,A
+16:               	OPTION_REG = 0x00;	   // 配置TIMER0时间，00为2分频
+  05AE    0181    CLR	0x1
+17:               
+18:               	WPUA    = 0B00000000;  // 配置PORTA输出情况
+  05AF    1683    SETB	0x3,5
+  05B0    0188    CLR	0x8
+19:               	WPDA    = 0B00000000;  
+  05B1    0187    CLR	0x7
+20:               	ODCONA  = 0B00000000;  
+  05B2    018C    CLR	0xC
+21:               	IOCA    = 0B00000000;
+  05B3    0189    CLR	0x9
+22:               	TRISA   = 0B00000000;
+  05B4    0185    CLR	0x5
+23:               
+24:               	WPUB    = 0B00000000;  // 配置PORTB输出情况
+  05B5    1283    CLRB	0x3,5
+  05B6    0188    CLR	0x8
+25:               	WPDB    = 0B00000001;
+  05B7    3001    LDIA	0x1
+  05B8    0087    LD	0x7,A
+26:               	ODCONB  = 0B00000000;  
+  05B9    018C    CLR	0xC
+27:               	IOCB    = 0B00000000;
+  05BA    0189    CLR	0x9
+28:               	TRISB   = 0B00000001; 
+  05BB    0085    LD	0x5,A
+29:               	PORTB 	= 0B00001110; // 
+  05BC    300E    LDIA	0xE
+  05BD    0086    LD	0x6,A
+30:               	
+31:               	PR2     = 198;		  // 设定Timer初始值，定时周期是200*4/16M=50uS
+  05BE    30C6    LDIA	0xC6
+  05BF    0091    LD	0x11,A
+32:               	TMR2IF  = 0; 
+  05C0    108D    CLRB	0xD,1
+33:               	TMR2IE  = 1;		  // 使能Timer2溢出中断
+  05C1    148E    SETB	0xE,1
+34:               	T2CON   = 0B00000100; // 开启Timer2，预分频为1：1，后分频为1：1，
+  05C2    3004    LDIA	0x4
+  05C3    0093    LD	0x13,A
+35:               						  // 则定时时间为（199+1）*1*（4/16M）=250us
+36:               						  
+37:               
+38:               	PWMCON0 = 0;		  // PWM时钟分频是FHSI/16,打开PWM1-RB1（绿色），PWM2-RB3（红色），PWM4-RB2（蓝色）
+  05C4    0195    CLR	0x15
+39:               	PWMCON1 = 0B00000000; // PWM选择D组，死区功能禁止
+  05C5    0196    CLR	0x16
+40:               	PWMCON2 = 0B0010110;  // PWM选择D组，死区功能禁止
+  05C6    3016    LDIA	0x16
+  05C7    009D    LD	0x1D,A
+41:               	PWMTL 	= 0xE7;       // PWM0,PWM1,PWM2,PWM3周期
+  05C8    30E7    LDIA	0xE7
+  05C9    0097    LD	0x17,A
+42:               
+43:               	// - - PWMD4:9 PWMD4:8 PWM4T:9 PWM4T:8 PWMT:9 PWMT:8
+44:               	PWMTH 	 = 0x0F; 	  // 蓝色PWMD4占空比高2位
+  05CA    300F    LDIA	0xF
+  05CB    0098    LD	0x18,A
+45:               	PWMT4L   = 0xE7; 	  
+  05CC    30E7    LDIA	0xE7
+  05CD    009C    LD	0x1C,A
+46:               	
+47:               	// - - PWMD3:9 PWMD3:8 - - PWMD2:9 PWMD2:8
+48:               	PWMD23H  = 0x30; 	  // 红色PWMD2占空比高2位
+  05CE    3030    LDIA	0x30
+  05CF    1683    SETB	0x3,5
+  05D0    009E    LD	0x1E,A
+49:               	PWMD2L   = 0;  	      // 红色PWMD2占空比低8位
+  05D1    019B    CLR	0x1B
+50:               	
+51:               	// - - PWMD1:9 PWMD1:8 - - PWMD0:9 PWMD0:8
+52:               	PWMD01H  = 0x03;	  // 绿色PWMD1占空比高2位
+  05D2    3003    LDIA	0x3
+  05D3    1283    CLRB	0x3,5
+  05D4    009E    LD	0x1E,A
+53:               	PWMD1L   = 0;  	  	  // 绿色PWMD1占空比低8位
+  05D5    019A    CLR	0x1A
+54:               	
+55:               	PWMTH 	 = 0x0F; 	  // 蓝色PWMD4占空比高2位
+  05D6    300F    LDIA	0xF
+  05D7    0098    LD	0x18,A
+56:               	PWMD4L   = 0;  	  	  // 蓝色PWMD4占空比低8位
+  05D8    019B    CLR	0x1B
+57:               	
+58:               
+59:               	INTCON   = 0XC0;	  // 开启总中断及外设中断
+  05D9    30C0    LDIA	0xC0
+  05DA    008B    LD	0xB,A
+  05DB    0008    RET
+60:               }
+61:               
+62:               /***********************************************
+63:               函数名称：Sleep_Mode
+64:               函数功能：进入休眠模式
+65:               入口参数：无
+66:               出口参数：无
+67:               备注：
+68:               ************************************************/
+69:               void Sleep_Mode(void)
+70:               {
+71:               	if((sleep_control.sleep_count >= 2) && (sleep_control.sleep_count <= 8)) // 看门狗唤醒后200ms内，无接受数据，进入休眠
+  02D2    3000    LDIA	0x0
+  02D3    0279    SUBA	0x79
+  02D4    3002    LDIA	0x2
+  02D5    1903    SZB	0x3,2
+  02D6    0278    SUBA	0x78
+  02D7    1C03    SNZB	0x3,0
+  02D8    2AE9    JP	0x2E9
+  02D9    3000    LDIA	0x0
+  02DA    0279    SUBA	0x79
+  02DB    3009    LDIA	0x9
+  02DC    1903    SZB	0x3,2
+  02DD    0278    SUBA	0x78
+  02DE    1803    SZB	0x3,0
+  02DF    2AE9    JP	0x2E9
+72:               	{
+73:               		if((soft_data[0] == 0) || (sleep_control.recieve_sleep_flag == 0))   // 加入recieve_sleep_flag标志位是因为能保证进入休眠，soft_data[0]可能不为0
+  02E0    1683    SETB	0x3,5
+  02E1    0820    LD	A,0x20
+  02E2    1903    SZB	0x3,2
+  02E3    2AE6    JP	0x2E6
+  02E4    18F7    SZB	0x77,1
+  02E5    2AE9    JP	0x2E9
+74:               		{																			
+75:               			sleep_control.sleep_flag  = 1;                                   // 置位休眠标志为1
+  02E6    1477    SETB	0x77,0
+76:                       	sleep_control.sleep_count = 0;
+  02E7    01F8    CLR	0x78
+  02E8    01F9    CLR	0x79
+77:               		}
+78:               	}
+79:               	
+80:                   if(sleep_control.sleep_count >= 18000)                                   // 30min睡眠计数超过30分钟，则进入休眠  
+  02E9    3046    LDIA	0x46
+  02EA    0279    SUBA	0x79
+  02EB    3050    LDIA	0x50
+  02EC    1903    SZB	0x3,2
+  02ED    0278    SUBA	0x78
+  02EE    1C03    SNZB	0x3,0
+  02EF    2AF5    JP	0x2F5
+81:               	{
+82:                       sleep_control.sleep_count = 0;
+  02F0    01F8    CLR	0x78
+  02F1    01F9    CLR	0x79
+83:               		sleep_control.sleep_flag  = 1;                                       // 置位休眠标志为1
+  02F2    1477    SETB	0x77,0
+84:               		soft_recieve_control.recieve_bit = 0;                                // 解锁按键
+  02F3    1283    CLRB	0x3,5
+  02F4    10B6    CLRB	0x36,1
+85:               	}
+86:               	if(sleep_control.sleep_flag == 1)
+  02F5    1C77    SNZB	0x77,0
+  02F6    2B43    JP	0x343
+87:               	{
+88:               		sleep_control.recieve_sleep_flag       = 0;
+  02F7    10F7    CLRB	0x77,1
+89:               		soft_recieve_control.start_flag        = 0;
+  02F8    1283    CLRB	0x3,5
+  02F9    01B8    CLR	0x38
+90:               		soft_recieve_control.data_length_count = 0; // 接收字节计数清零
+  02FA    01BC    CLR	0x3C
+91:               		soft_recieve_control.data_bit_count    = 0; // 清除数据计数
+  02FB    01BB    CLR	0x3B
+92:               		sleep_control.sleep_count 			   = 0;
+  02FC    01F8    CLR	0x78
+  02FD    01F9    CLR	0x79
+93:               		led_control.red_duty   	  			   = 0;
+  02FE    01A1    CLR	0x21
+94:               		led_control.green_duty 	  			   = 0;
+  02FF    01A2    CLR	0x22
+95:               		led_control.blue_duty  	  			   = 0;
+  0300    01A3    CLR	0x23
+96:               		TRISB 	   = 0B00000000; // 关闭所有输出，RB5口做唤醒输入
+  0301    0185    CLR	0x5
+97:               		RF_CE_Low(); // 拉低CE
+  0302    27BE    CALL	0x7BE
+98:               		RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0xe0);
+  0303    30E0    LDIA	0xE0
+  0304    00CD    LD	0x4D,A
+  0305    3020    LDIA	0x20
+  0306    27B7    CALL	0x7B7
+99:               		PWMTL 	   = 0; // PWM0,PWM1,PWM2,PWM3周期
+  0307    0197    CLR	0x17
+100:              		PWMTH 	   = 0; // 蓝色PWMD4占空比高2位
+  0308    0198    CLR	0x18
+101:              		PWMCON0    = 0; // PWM时钟分频是FHSI/16,打开PWM1-RB1（绿色），PWM2-RB3（红色），PWM4-RB2（蓝色）
+  0309    0195    CLR	0x15
+102:              		TMR2IE     = 0;
+  030A    108E    CLRB	0xE,1
+103:              		INTCON     = 0;	
+  030B    018B    CLR	0xB
+104:              		T2CON      = 0;	
+  030C    0193    CLR	0x13
+105:              		OPTION_REG = 0;
+  030D    0181    CLR	0x1
+106:              		TRISA 	   = 0B00000000; // 关闭所有输出，RA0口做唤醒输入
+  030E    1683    SETB	0x3,5
+  030F    0185    CLR	0x5
+107:              		WPUA  	   = 0B00000000; // RA0 开上拉电阻
+  0310    0188    CLR	0x8
+108:              		TRISB 	   = 0B00000001; // 关闭所有输出，RB5口做唤醒输入
+  0311    3001    LDIA	0x1
+  0312    1283    CLRB	0x3,5
+  0313    0085    LD	0x5,A
+109:              		PORTB 	   = 0B00001110; // 
+  0314    300E    LDIA	0xE
+  0315    0086    LD	0x6,A
+110:              		WPUB  	   = 0B00000000; // RB5开上拉电阻	
+  0316    0188    CLR	0x8
+111:              		PWMCON0    = 0;
+  0317    0195    CLR	0x15
+112:              		while(KEY); 
+  0318    1806    SZB	0x6,0
+  0319    2B18    JP	0x318
+113:              		OPTION_REG = 0x0F;
+  031A    300F    LDIA	0xF
+  031B    0081    LD	0x1,A
+114:              		OSCCON     = 0X72;	     // 配置振荡为16M,
+  031C    3072    LDIA	0x72
+  031D    0094    LD	0x14,A
+115:              		IOCB 	   = 0B00000001; // 允许RB5的IO口电平变化中断
+  031E    3001    LDIA	0x1
+  031F    0089    LD	0x9,A
+116:              		GIE        = 0;		     // 唤醒后执行SLEEP后程序;
+  0320    138B    CLRB	0xB,7
+117:              		PIE1   	   = 0;	  	     // 关闭不需要的中断
+  0321    018E    CLR	0xE
+118:              		PIR1       = 0;		     // 必须清不需要的中断标志位
+  0322    018D    CLR	0xD
+119:              		RBIE       = 1;			 // 允许PORTB电平变化中断
+  0323    158B    SETB	0xB,3
+120:              		INTCON 	  &= 0xC8;	     // 必须清不需要的中断标志位
+  0324    30C8    LDIA	0xC8
+  0325    058B    ANDR	0xB
+121:              		PORTB;				     // 读PORTB值并锁存	
+  0326    0806    LD	A,0x6
+122:              		RBIF 	   = 0;			 // 清PORTB中断标志位		
+  0327    100B    CLRB	0xB,0
+  0328    0064    CLRWDT
+  0329    0000    NOP
+  032A    0064    CLRWDT
+  032B    0063    STOP
+  032C    0064    CLRWDT
+123:              		asm("clrwdt");
+124:              		asm("nop");
+125:              		asm("clrwdt");
+126:              		asm("sleep");		// 进入休眠模式
+127:              		asm("clrwdt");
+128:              		while(KEY); 
+  032D    1283    CLRB	0x3,5
+  032E    1806    SZB	0x6,0
+  032F    2B2D    JP	0x32D
+129:              		if(RBIF) 
+  0330    1C0B    SNZB	0xB,0
+  0331    2B3C    JP	0x33C
+  0332    300F    LDIA	0xF
+130:              		{
+131:              			sleep_control.recieve_sleep_flag  = 1;
+  0333    14F7    SETB	0x77,1
+132:              			sleep_control.sleep_count = 15;
+  0334    00F8    LD	0x78,A
+  0335    01F9    CLR	0x79
+133:              			key_control.key_hx_flag_pb = 1;
+  0336    16E9    SETB	0x69,5
+134:              			OPTION_REG = 0x00;
+  0337    0181    CLR	0x1
+135:              			OSCCON     = 0x70;
+  0338    3070    LDIA	0x70
+  0339    0094    LD	0x14,A
+136:              			RBIE       = 0; // 允许PORTB电平变化中断
+  033A    118B    CLRB	0xB,3
+137:              			RBIF       = 0; // 清中断标志 
+  033B    100B    CLRB	0xB,0
+138:              		}
+139:              		PORTB 	   = 0B00111110; // 
+  033C    303E    LDIA	0x3E
+  033D    0086    LD	0x6,A
+140:              		OPTION_REG = 0x00;
+  033E    0181    CLR	0x1
+141:              		OSCCON     = 0x70;	// 16MHZ,内部振荡器用作系统时钟,CONFIG关闭WDT时必需软件打开WDT
+  033F    3070    LDIA	0x70
+  0340    0094    LD	0x14,A
+142:              		Init_System();
+  0341    25AA    CALL	0x5AA
+143:              		sleep_control.sleep_flag = 0;  
+  0342    1077    CLRB	0x77,0
+144:              	}
+145:              	
+146:              	if(key_control.key_hx_flag_pb == 1)
+  0343    1283    CLRB	0x3,5
+  0344    1EE9    SNZB	0x69,5
+  0345    0008    RET
+  0346    3002    LDIA	0x2
+147:              	{
+148:              		led_control.led_color      = 1;  // 颜色值复位
+  0347    01A7    CLR	0x27
+  0348    0AA7    INCR	0x27
+149:              		led_control.led_mode       = 2;  // 模式复位
+  0349    00A8    LD	0x28,A
+150:              		key_control.key_hx_flag_pb = 0;
+  034A    12E9    CLRB	0x69,5
+  034B    0008    RET
+151:              	}
+152:              }
+153:              
+154:              void Delay_3us(void)
+155:              {
+156:              	unsigned char i,j;
+157:              	for(i=1;i>0;i--)
+  0772    01CB    CLR	0x4B
+  0773    0ACB    INCR	0x4B
+  0774    0000    NOP
+158:              	{
+159:              		asm("nop");
+160:              		for(j=5;j>0;j--);
+  0775    3005    LDIA	0x5
+  0776    1283    CLRB	0x3,5
+  0777    00CC    LD	0x4C,A
+  0778    0BCC    SZDECR	0x4C
+  0779    2F78    JP	0x778
+  077A    03CB    DECR	0x4B
+  077B    084B    LD	A,0x4B
+  077C    1903    SZB	0x3,2
+  077D    0008    RET
+  077E    2F74    JP	0x774
+161:              	}
+162:              }
+163:              
+164:              void Delay_us(unsigned char x)
+165:              {
+166:              	unsigned char i,j;
+167:              	for(i=x;i>0;i--)
+  0759    00CC    LD	0x4C,A
+  075A    084C    LD	A,0x4C
+  075B    1903    SZB	0x3,2
+  075C    0008    RET
+  075D    0000    NOP
+168:              	{
+169:              		asm("nop");
+170:              		for(j=153;j>0;j--);
+  075E    3099    LDIA	0x99
+  075F    1283    CLRB	0x3,5
+  0760    00CD    LD	0x4D,A
+  0761    0BCD    SZDECR	0x4D
+  0762    2F61    JP	0x761
+  0763    03CC    DECR	0x4C
+  0764    2F5A    JP	0x75A
+171:              	}
+172:              }
+173:              
+174:              void Delay_1ms(void)
+175:              {
+176:              	Delay_us(15);
+  07C6    300F    LDIA	0xF
+  07C7    2F58    JP	0x758
+177:              }
+178:              
+179:              void Delay_ms(unsigned char x)
+180:              {
+181:              	unsigned char i;
+182:              	for(i = 0; i < x; i++)
+  0796    01CF    CLR	0x4F
+  0797    084E    LD	A,0x4E
+  0798    024F    SUBA	0x4F
+  0799    1803    SZB	0x3,0
+  079A    0008    RET
+183:              	{
+184:              		Delay_us(15);
+  079B    300F    LDIA	0xF
+  079C    2758    CALL	0x758
+  079D    0ACF    INCR	0x4F
+  079E    2F97    JP	0x797
+185:              	}
+186:              	
+187:              }
+188:              
+189:              
+190:              
+191:              
+---- D:\QW\QW-中微\SC8F054_DK\IDE\SCMCU_IDE_V2.00.17_Beta3\data\sources\common\rand.c ----------------------------------------------------------------------
+1:                #include	<stdlib.h>
+2:                
+3:                static	long	randx = 1;
+4:                
+5:                void
+6:                srand(unsigned x)
+7:                {
+8:                	randx = x;
+9:                }
+10:               
+11:               int
+12:               rand(void)
+  05DC    3041    LDIA	0x41
+  05DD    00CE    LD	0x4E,A
+  05DE    30C6    LDIA	0xC6
+  05DF    00CD    LD	0x4D,A
+  05E0    304E    LDIA	0x4E
+  05E1    00CC    LD	0x4C,A
+  05E2    306D    LDIA	0x6D
+  05E3    00CB    LD	0x4B,A
+  05E4    084A    LD	A,0x4A
+  05E5    00D2    LD	0x52,A
+  05E6    0849    LD	A,0x49
+  05E7    00D1    LD	0x51,A
+  05E8    0848    LD	A,0x48
+  05E9    00D0    LD	0x50,A
+  05EA    0847    LD	A,0x47
+  05EB    00CF    LD	0x4F,A
+  05EC    2577    CALL	0x577
+  05ED    084E    LD	A,0x4E
+  05EE    00CA    LD	0x4A,A
+  05EF    084D    LD	A,0x4D
+  05F0    00C9    LD	0x49,A
+  05F1    084C    LD	A,0x4C
+  05F2    00C8    LD	0x48,A
+  05F3    084B    LD	A,0x4B
+  05F4    00C7    LD	0x47,A
+  05F5    3039    LDIA	0x39
+  05F6    07C7    ADDR	0x47
+  05F7    3030    LDIA	0x30
+  05F8    1803    SZB	0x3,0
+  05F9    3031    LDIA	0x31
+  05FA    07C8    ADDR	0x48
+  05FB    3000    LDIA	0x0
+  05FC    1803    SZB	0x3,0
+  05FD    3001    LDIA	0x1
+  05FE    07C9    ADDR	0x49
+  05FF    3000    LDIA	0x0
+  0600    1803    SZB	0x3,0
+  0601    3001    LDIA	0x1
+  0602    07CA    ADDR	0x4A
+  0603    084A    LD	A,0x4A
+  0604    00D8    LD	0x58,A
+  0605    0849    LD	A,0x49
+  0606    00D7    LD	0x57,A
+  0607    13D8    CLRB	0x58,7
+  0608    0008    RET
+13:               {
+14:               	randx = randx*1103515245L;
+15:               	randx += 12345;
+16:               	return (int)((randx >> 16) & 0x7FFF);
+17:               }
+---- D:\QW\QW-项目\QW-247\程序\手环-中微-程序-16通道-2.4G\QW-247_SC8F054_V1.0_16M2T_16Channel\SC8F054_soft.c ----------------------------------------------------------------------
+1:                #include <sc.h>					
+2:                #include "SC8F054_define.h"	
+3:                #include "SC8F054_var.h"	
+4:                
+5:                
+6:                
+7:                
+8:                /**----------------------------------------------------------------------------------------------**
+9:                 **函数名  ：解码函数
+10:                **功能    ：解析接收的脉冲信号（同步码+数据位），校验数据合法性，执行LED控制逻辑
+11:                **参数    ：无
+12:                **返回值  ：无
+13:                **----------------------------------------------------------------------------------------------**/
+14:               void Soft_Decode(void) // 接受码处理函数
+15:               { 
+16:               	{  /*
+17:               		if((soft_recieve_control.data_length_count == 33) &&
+18:               		(((soft_data[1] + soft_data[4] + soft_data[8] + soft_data[10] + soft_data[14] + soft_data[24]) & 0x0ff) == soft_data[0])) // DMX数据
+19:               		{
+20:               			sleep_control.sleep_count         = 13; // 按下按键30m内不进入休眠
+21:               			sleep_control.recieve_sleep_flag  = 1;  // 置1，不进入休眠
+22:               			soft_recieve_control.randnum_flag = 0;  // 禁止获取随机数
+23:               			soft_recieve_control.recieve_bit  = 1;  // 锁定按键
+24:               			
+25:               			// 本通道数据
+26:               			if(((soft_data[1] + soft_data[4] + soft_data[8] + soft_data[10] + soft_data[14] + soft_data[24]) & 0x0ff) == soft_data[0]) 
+27:               			{
+28:               				led_control.led_mode       = (( soft_data[led_control.add_data * 2 - 1] >> 4) & 0x0f);					
+29:               				led_control.set_red_duty   = ((soft_data[led_control.add_data * 2 - 1])      & 0x0f) * 17;
+30:               				led_control.set_green_duty = ((soft_data[led_control.add_data * 2] >> 4)     & 0x0f) * 17;
+31:               				led_control.set_blue_duty  = ((soft_data[led_control.add_data * 2])          & 0x0f) * 17;
+32:               			}
+33:               			
+34:               			soft_recieve_control.start_flag         = 0; // 清除开始标志位
+35:               			soft_recieve_control.clear_bit          = 0; // 清除接收相关标志位和计数值 
+36:               			soft_data[0]                            = 0; // 清零接收数据缓冲区首字节：清除帧头残留数据
+37:               			soft_recieve_control.data_length_count  = 0; // 清零接收数据次数
+38:               		}*/
+39:               		if(soft_recieve_control.data_length_count == 5)
+  0032    3005    LDIA	0x5
+  0033    063C    XORA	0x3C
+  0034    1D03    SNZB	0x3,2
+  0035    0008    RET
+40:               		{ 
+41:               			// 帧重复检测：与上一次接收的帧比较，避免重复处理
+42:               			if((soft_data[0] != soft_recieve_control.temp0) || (soft_data[1] != soft_recieve_control.temp1) 
+43:               			|| (soft_data[2] != soft_recieve_control.temp2) || (soft_data[3] != soft_recieve_control.temp3))
+  0036    083F    LD	A,0x3F
+  0037    1683    SETB	0x3,5
+  0038    0620    XORA	0x20
+  0039    1D03    SNZB	0x3,2
+  003A    284C    JP	0x4C
+  003B    0821    LD	A,0x21
+  003C    1283    CLRB	0x3,5
+  003D    0640    XORA	0x40
+  003E    1683    SETB	0x3,5
+  003F    1D03    SNZB	0x3,2
+  0040    284D    JP	0x4D
+  0041    0822    LD	A,0x22
+  0042    1283    CLRB	0x3,5
+  0043    0641    XORA	0x41
+  0044    1683    SETB	0x3,5
+  0045    1D03    SNZB	0x3,2
+  0046    284D    JP	0x4D
+  0047    0823    LD	A,0x23
+  0048    1283    CLRB	0x3,5
+  0049    0642    XORA	0x42
+  004A    1903    SZB	0x3,2
+  004B    0008    RET
+44:               			{	 
+45:               				// 校验和验证：前4字节和校验等于第5字节
+46:               				if(((soft_data[0] + soft_data[1] + soft_data[2] + soft_data[3]) & 0x0ff) == soft_data[4])
+  004C    1683    SETB	0x3,5
+  004D    0822    LD	A,0x22
+  004E    0721    ADDA	0x21
+  004F    1283    CLRB	0x3,5
+  0050    00D1    LD	0x51,A
+  0051    1683    SETB	0x3,5
+  0052    0823    LD	A,0x23
+  0053    1283    CLRB	0x3,5
+  0054    0751    ADDA	0x51
+  0055    00D2    LD	0x52,A
+  0056    1683    SETB	0x3,5
+  0057    0820    LD	A,0x20
+  0058    1283    CLRB	0x3,5
+  0059    0752    ADDA	0x52
+  005A    1683    SETB	0x3,5
+  005B    0624    XORA	0x24
+  005C    1D03    SNZB	0x3,2
+  005D    0008    RET
+47:               				{
+48:               					soft_recieve_control.temp0         = soft_data[0];        // 记录上一次的数组第0个的数据
+  005E    0820    LD	A,0x20
+  005F    1283    CLRB	0x3,5
+  0060    00BF    LD	0x3F,A
+49:               					soft_recieve_control.temp1         = soft_data[1];        // 记录上一次的数组第1个的数据
+  0061    1683    SETB	0x3,5
+  0062    0821    LD	A,0x21
+  0063    1283    CLRB	0x3,5
+  0064    00C0    LD	0x40,A
+50:               					soft_recieve_control.temp2         = soft_data[2];        // 记录上一次的数组第2个的数据
+  0065    1683    SETB	0x3,5
+  0066    0822    LD	A,0x22
+  0067    1283    CLRB	0x3,5
+  0068    00C1    LD	0x41,A
+51:               					soft_recieve_control.temp3         = soft_data[3];        // 记录上一次的数组第3个的数据
+  0069    1683    SETB	0x3,5
+  006A    0823    LD	A,0x23
+  006B    1283    CLRB	0x3,5
+  006C    00C2    LD	0x42,A
+52:               					soft_recieve_control.function_data = soft_data[3];        // 保存功能指令
+  006D    1683    SETB	0x3,5
+  006E    0823    LD	A,0x23
+  006F    1283    CLRB	0x3,5
+  0070    00BE    LD	0x3E,A
+53:               					soft_recieve_control.Channel       = soft_data[0] & 0xff; // 提获取通道1-8的数据
+  0071    1683    SETB	0x3,5
+  0072    0820    LD	A,0x20
+  0073    1283    CLRB	0x3,5
+  0074    00C4    LD	0x44,A
+54:               					sleep_control.sleep_count          = 13;                  // 等于13防止未接收数据进入休眠
+  0075    300D    LDIA	0xD
+  0076    00F8    LD	0x78,A
+  0077    3020    LDIA	0x20
+  0078    01F9    CLR	0x79
+55:               					sleep_control.recieve_sleep_flag   = 1;               	  // 置1，不进入休眠
+  0079    14F7    SETB	0x77,1
+56:               					soft_recieve_control.randnum_flag  = 0;                   // 禁止随机数的获取
+  007A    12B6    CLRB	0x36,5
+57:               					
+58:               					if((soft_recieve_control.function_data == 0x20) || (soft_recieve_control.function_data == 0xE0) 
+59:               					|| (soft_recieve_control.function_data == 0xC0) || (soft_recieve_control.function_data == 0x40))      
+  007B    063E    XORA	0x3E
+  007C    1903    SZB	0x3,2
+  007D    288A    JP	0x8A
+  007E    30E0    LDIA	0xE0
+  007F    063E    XORA	0x3E
+  0080    1903    SZB	0x3,2
+  0081    288A    JP	0x8A
+  0082    30C0    LDIA	0xC0
+  0083    063E    XORA	0x3E
+  0084    1903    SZB	0x3,2
+  0085    288A    JP	0x8A
+  0086    3040    LDIA	0x40
+  0087    063E    XORA	0x3E
+  0088    1D03    SNZB	0x3,2
+  0089    28EA    JP	0xEA
+60:               					{ 
+61:               						soft_recieve_control.recieve_bit = 1; 			// 锁定按键 
+  008A    14B6    SETB	0x36,1
+62:               
+63:               						if((soft_recieve_control.Channel | (soft_data[1] << 8)) & (1 << (led_control.add_data - 1)))
+  008B    0835    LD	A,0x35
+  008C    3EFF    ADDIA	0xFF
+  008D    00D1    LD	0x51,A
+  008E    3001    LDIA	0x1
+  008F    0AD1    INCR	0x51
+  0090    00D2    LD	0x52,A
+  0091    3000    LDIA	0x0
+  0092    00D3    LD	0x53,A
+  0093    2897    JP	0x97
+  0094    1003    CLRB	0x3,0
+  0095    0DD2    RLCR	0x52
+  0096    0DD3    RLCR	0x53
+  0097    0BD1    SZDECR	0x51
+  0098    2894    JP	0x94
+  0099    0852    LD	A,0x52
+  009A    0544    ANDA	0x44
+  009B    00D4    LD	0x54,A
+  009C    0853    LD	A,0x53
+  009D    1683    SETB	0x3,5
+  009E    0521    ANDA	0x21
+  009F    1283    CLRB	0x3,5
+  00A0    00D5    LD	0x55,A
+  00A1    0454    ORA	0x54
+  00A2    1903    SZB	0x3,2
+  00A3    28E2    JP	0xE2
+64:               						{
+65:               							if(soft_recieve_control.function_data == 0x20)
+  00A4    3020    LDIA	0x20
+  00A5    063E    XORA	0x3E
+  00A6    1D03    SNZB	0x3,2
+  00A7    28BC    JP	0xBC
+66:               							{
+67:               								led_control.led_color = (soft_data[2] >> 4) & 0x0f;
+  00A8    1683    SETB	0x3,5
+  00A9    0E22    SWAPA	0x22
+  00AA    390F    ANDIA	0xF
+  00AB    1283    CLRB	0x3,5
+  00AC    00A7    LD	0x27,A
+  00AD    300F    LDIA	0xF
+  00AE    05A7    ANDR	0x27
+68:               								led_control.led_mode  = (soft_data[2]) & 0x0f;
+  00AF    1683    SETB	0x3,5
+  00B0    0822    LD	A,0x22
+  00B1    1283    CLRB	0x3,5
+  00B2    00A8    LD	0x28,A
+  00B3    300F    LDIA	0xF
+  00B4    05A8    ANDR	0x28
+69:               
+70:               								led_control.quick_control = 0;
+  00B5    01B4    CLR	0x34
+71:               								if(led_control.led_color != 0)
+  00B6    0827    LD	A,0x27
+  00B7    1903    SZB	0x3,2
+  00B8    29C2    JP	0x1C2
+72:               									led_control.last_quick_led = led_control.led_color;
+  00B9    0827    LD	A,0x27
+  00BA    00B2    LD	0x32,A
+  00BB    29C2    JP	0x1C2
+73:               							}
+74:               							else if(soft_recieve_control.function_data == 0xE0)
+  00BC    30E0    LDIA	0xE0
+  00BD    063E    XORA	0x3E
+  00BE    1D03    SNZB	0x3,2
+  00BF    28C5    JP	0xC5
+75:               							{
+76:               								led_control.led_mode  = LED_MODE_ON; 
+  00C0    3002    LDIA	0x2
+  00C1    00A8    LD	0x28,A
+77:               								led_control.led_color = led_control.last_quick_led; 
+  00C2    0832    LD	A,0x32
+  00C3    00A7    LD	0x27,A
+78:               							}
+  00C4    29C2    JP	0x1C2
+79:               							else if(soft_recieve_control.function_data == 0xC0)
+  00C5    30C0    LDIA	0xC0
+  00C6    063E    XORA	0x3E
+  00C7    1D03    SNZB	0x3,2
+  00C8    28D0    JP	0xD0
+80:               							{
+81:               								led_control.add_data = (soft_data[2] & 0x0f) + 1; // 0-15通道加1转换为1-16通道(因为只有4bit，所以传的时候只能传0-15)
+  00C9    1683    SETB	0x3,5
+  00CA    0822    LD	A,0x22
+  00CB    390F    ANDIA	0xF
+  00CC    3E01    ADDIA	0x1
+  00CD    1283    CLRB	0x3,5
+  00CE    00B5    LD	0x35,A
+82:               							}
+  00CF    29C2    JP	0x1C2
+83:               							else if(soft_recieve_control.function_data == 0x40)
+  00D0    3040    LDIA	0x40
+  00D1    063E    XORA	0x3E
+  00D2    1D03    SNZB	0x3,2
+  00D3    29C2    JP	0x1C2
+84:               							{
+85:               								led_control.led_color = (soft_data[2] >>4) & 0x0f;
+  00D4    1683    SETB	0x3,5
+  00D5    0E22    SWAPA	0x22
+  00D6    390F    ANDIA	0xF
+  00D7    1283    CLRB	0x3,5
+  00D8    00A7    LD	0x27,A
+  00D9    300F    LDIA	0xF
+  00DA    05A7    ANDR	0x27
+86:               								led_control.led_mode  = soft_data[2] & 0x0f; 
+  00DB    1683    SETB	0x3,5
+  00DC    0822    LD	A,0x22
+  00DD    1283    CLRB	0x3,5
+  00DE    00A8    LD	0x28,A
+  00DF    300F    LDIA	0xF
+  00E0    05A8    ANDR	0x28
+  00E1    29C2    JP	0x1C2
+87:               							}
+88:               						}
+89:               						else if(soft_recieve_control.function_data == 0x40)
+  00E2    3040    LDIA	0x40
+  00E3    063E    XORA	0x3E
+  00E4    1D03    SNZB	0x3,2
+  00E5    29C2    JP	0x1C2
+90:               						{
+91:               							led_control.led_mode  = LED_MODE_OFF; // 进入灭灯
+  00E6    01A8    CLR	0x28
+  00E7    0AA8    INCR	0x28
+92:               							led_control.led_color = 0;
+  00E8    01A7    CLR	0x27
+93:               						}
+94:               						soft_recieve_control.clear_bit = 1;             // 清除接收数据相关的标志位和计数值                                                                      
+  01C2    1536    SETB	0x36,2
+95:               					}
+  00E9    29C2    JP	0x1C2
+96:               					else if(soft_recieve_control.function_data == 0x60) // 手环解锁
+  00EA    3060    LDIA	0x60
+  00EB    063E    XORA	0x3E
+  00EC    1D03    SNZB	0x3,2
+  00ED    28F4    JP	0xF4
+  00EE    3002    LDIA	0x2
+97:               					{
+98:               						soft_recieve_control.recieve_bit = 0; // 解锁按键
+  00EF    10B6    CLRB	0x36,1
+99:               						soft_recieve_control.clear_bit   = 1; // 清除接收数据相关的标志位和计数值
+  00F0    1536    SETB	0x36,2
+100:              						led_control.led_color            = 0;
+  00F1    01A7    CLR	0x27
+101:              						led_control.led_mode             = LED_MODE_ON;	
+  00F2    00A8    LD	0x28,A
+102:              					}
+  00F3    29C3    JP	0x1C3
+103:              					else if(soft_recieve_control.function_data == 0xD0) // 彩虹
+  00F4    30D0    LDIA	0xD0
+  00F5    063E    XORA	0x3E
+  00F6    1D03    SNZB	0x3,2
+  00F7    290D    JP	0x10D
+104:              					{
+105:              						soft_recieve_control.recieve_bit = 1; // 锁定按键
+  00F8    14B6    SETB	0x36,1
+106:              						led_control.led_color   		 = (soft_data[2] >> 4) & 0x0f;
+  00F9    1683    SETB	0x3,5
+  00FA    0E22    SWAPA	0x22
+  00FB    390F    ANDIA	0xF
+  00FC    1283    CLRB	0x3,5
+  00FD    00A7    LD	0x27,A
+  00FE    300F    LDIA	0xF
+  00FF    05A7    ANDR	0x27
+107:              						led_control.led_color   		 = (led_control.led_color + led_control.add_data) % 10 + 1;
+  0100    300A    LDIA	0xA
+  0101    00CB    LD	0x4B,A
+  0102    01CC    CLR	0x4C
+  0103    0827    LD	A,0x27
+  0104    0735    ADDA	0x35
+  0105    00CD    LD	0x4D,A
+  0106    01CE    CLR	0x4E
+  0107    0DCE    RLCR	0x4E
+  0108    24D0    CALL	0x4D0
+  0109    084B    LD	A,0x4B
+  010A    3E01    ADDIA	0x1
+  010B    00A7    LD	0x27,A
+  010C    28DB    JP	0xDB
+108:              						led_control.led_mode    		 = soft_data[2] & 0x0f;  
+109:              						soft_recieve_control.clear_bit   = 1; // 清除接收数据相关的标志位和计数值
+110:              					}
+111:              					else if(soft_recieve_control.function_data == 0x80) // 呼吸
+  010D    3080    LDIA	0x80
+  010E    063E    XORA	0x3E
+  010F    1D03    SNZB	0x3,2
+  0110    2954    JP	0x154
+112:              					{
+113:              						soft_recieve_control.recieve_bit = 1; 	 // 锁定按键
+  0111    14B6    SETB	0x36,1
+114:              						if((soft_recieve_control.Channel | (soft_data[1] << 8)) & (1 << (led_control.add_data - 1)))
+  0112    0835    LD	A,0x35
+  0113    3EFF    ADDIA	0xFF
+  0114    00D1    LD	0x51,A
+  0115    3001    LDIA	0x1
+  0116    0AD1    INCR	0x51
+  0117    00D2    LD	0x52,A
+  0118    3000    LDIA	0x0
+  0119    00D3    LD	0x53,A
+  011A    291E    JP	0x11E
+  011B    1003    CLRB	0x3,0
+  011C    0DD2    RLCR	0x52
+  011D    0DD3    RLCR	0x53
+  011E    0BD1    SZDECR	0x51
+  011F    291B    JP	0x11B
+  0120    0852    LD	A,0x52
+  0121    0544    ANDA	0x44
+  0122    00D4    LD	0x54,A
+  0123    0853    LD	A,0x53
+  0124    1683    SETB	0x3,5
+  0125    0521    ANDA	0x21
+  0126    1283    CLRB	0x3,5
+  0127    00D5    LD	0x55,A
+  0128    0454    ORA	0x54
+  0129    1903    SZB	0x3,2
+  012A    29C2    JP	0x1C2
+115:              						{
+116:              							led_control.led_color     		  = (soft_data[2] >> 4) & 0x0f;
+  012B    1683    SETB	0x3,5
+  012C    0E22    SWAPA	0x22
+  012D    390F    ANDIA	0xF
+  012E    1283    CLRB	0x3,5
+  012F    00A7    LD	0x27,A
+  0130    300F    LDIA	0xF
+  0131    05A7    ANDR	0x27
+  0132    300E    LDIA	0xE
+117:              							led_control.breath_time    		  = 0;
+  0133    01AA    CLR	0x2A
+118:              							led_control.led_mode       		  = LED_MODE_FADING; // 进入呼吸模式
+  0134    00A8    LD	0x28,A
+119:              							led_control.breath_flag           = soft_data[2] & 0x0f; 
+  0135    1683    SETB	0x3,5
+  0136    0822    LD	A,0x22
+  0137    1283    CLRB	0x3,5
+  0138    00A0    LD	0x20,A
+  0139    300F    LDIA	0xF
+  013A    05A0    ANDR	0x20
+120:              							led_control.breath_start_off_time = 10;
+  013B    300A    LDIA	0xA
+  013C    00AB    LD	0x2B,A
+121:              							led_control.led_mode_count        = 10;
+  013D    00A9    LD	0x29,A
+122:              							led_control.breat_time_control    = 10; 
+  013E    00B3    LD	0x33,A
+123:              							
+124:              							if(led_control.breath_flag == 1)      // 渐亮
+  013F    0B20    SZDECA	0x20
+  0140    2945    JP	0x145
+125:              							{
+126:              								led_control.red_duty   = 0;
+  0141    01A1    CLR	0x21
+127:              								led_control.green_duty = 0;
+  0142    01A2    CLR	0x22
+128:              								led_control.blue_duty  = 0;
+  0143    01A3    CLR	0x23
+129:              							}
+  0144    29C2    JP	0x1C2
+130:              							else if(led_control.breath_flag == 0) // 渐暗是1000ms之后完全灭灯
+  0145    0820    LD	A,0x20
+  0146    1D03    SNZB	0x3,2
+  0147    294A    JP	0x14A
+131:              							{
+132:              								led_control.color_p = 0;
+  0148    01AD    CLR	0x2D
+133:              							}
+  0149    29C2    JP	0x1C2
+134:              							else if(led_control.breath_flag == 2) // 贪吃蛇渐暗的15*17=2550ms灭灯，如果用1000ms的话，客户觉得太快了
+  014A    3002    LDIA	0x2
+  014B    0620    XORA	0x20
+  014C    1D03    SNZB	0x3,2
+  014D    29C2    JP	0x1C2
+135:              							{
+136:              								led_control.breath_start_off_time = 17;
+  014E    3011    LDIA	0x11
+  014F    00AB    LD	0x2B,A
+137:              								led_control.led_mode_count        = 15;
+  0150    300F    LDIA	0xF
+  0151    00A9    LD	0x29,A
+138:              								led_control.breat_time_control    = 15; 
+  0152    00B3    LD	0x33,A
+  0153    2948    JP	0x148
+139:              								led_control.color_p               = 0;
+140:              							}	
+141:              						}             
+142:              						soft_recieve_control.clear_bit = 1;           // 清除接收数据相关的标志位和计数值
+143:              					}
+144:              					else if(soft_recieve_control.function_data == 0xB0) // 快闪
+  0154    30B0    LDIA	0xB0
+  0155    063E    XORA	0x3E
+  0156    1D03    SNZB	0x3,2
+  0157    299E    JP	0x19E
+145:              					{
+146:              						soft_recieve_control.recieve_bit = 1;   // 锁定按键
+  0158    14B6    SETB	0x36,1
+147:              						soft_recieve_control.stroge_flag = soft_data[2] & 0x03;
+  0159    1683    SETB	0x3,5
+  015A    0822    LD	A,0x22
+  015B    1283    CLRB	0x3,5
+  015C    00B7    LD	0x37,A
+  015D    3003    LDIA	0x3
+  015E    05B7    ANDR	0x37
+148:              
+149:              						if((soft_recieve_control.Channel | (soft_data[1] << 8)) & (1 << (led_control.add_data - 1)))
+  015F    0835    LD	A,0x35
+  0160    3EFF    ADDIA	0xFF
+  0161    00D1    LD	0x51,A
+  0162    3001    LDIA	0x1
+  0163    0AD1    INCR	0x51
+  0164    00D2    LD	0x52,A
+  0165    3000    LDIA	0x0
+  0166    00D3    LD	0x53,A
+  0167    296B    JP	0x16B
+  0168    1003    CLRB	0x3,0
+  0169    0DD2    RLCR	0x52
+  016A    0DD3    RLCR	0x53
+  016B    0BD1    SZDECR	0x51
+  016C    2968    JP	0x168
+  016D    0852    LD	A,0x52
+  016E    0544    ANDA	0x44
+  016F    00D4    LD	0x54,A
+  0170    0853    LD	A,0x53
+  0171    1683    SETB	0x3,5
+  0172    0521    ANDA	0x21
+  0173    1283    CLRB	0x3,5
+  0174    00D5    LD	0x55,A
+  0175    0454    ORA	0x54
+  0176    1903    SZB	0x3,2
+  0177    2985    JP	0x185
+150:              						{
+151:              							led_control.led_color           = led_control.last_quick_led;
+  0178    0832    LD	A,0x32
+  0179    00A7    LD	0x27,A
+  017A    3002    LDIA	0x2
+152:              							led_control.quick_control       = 1;
+  017B    01B4    CLR	0x34
+  017C    0AB4    INCR	0x34
+153:              							led_control.led_mode_count      = 0; // 清零计数，保持闪烁同步
+  017D    01A9    CLR	0x29
+154:              							soft_recieve_control.quick_flag = 1; // 置1，进入快闪模式 
+  017E    1736    SETB	0x36,6
+155:              							if(soft_recieve_control.stroge_flag == 2)
+  017F    0637    XORA	0x37
+  0180    1D03    SNZB	0x3,2
+  0181    2995    JP	0x195
+156:              							{
+157:              								led_control.led_color            = 0;
+  0182    01A7    CLR	0x27
+158:              								soft_recieve_control.quick_flag  = 0; // 置1，进入快闪模式
+  0183    1336    CLRB	0x36,6
+  0184    2995    JP	0x195
+159:              							}
+160:              						}
+161:              						else
+162:              						{
+163:              							if((soft_recieve_control.stroge_flag == 2) && (led_control.quick_control == 1))
+  0185    3002    LDIA	0x2
+  0186    0637    XORA	0x37
+  0187    1D03    SNZB	0x3,2
+  0188    298E    JP	0x18E
+  0189    0B34    SZDECA	0x34
+  018A    298E    JP	0x18E
+164:              							{
+165:              								led_control.led_color = led_control.last_quick_led;
+  018B    0832    LD	A,0x32
+  018C    00A7    LD	0x27,A
+166:              							}
+  018D    2995    JP	0x195
+167:              							else if(led_control.quick_control == 0)
+  018E    0834    LD	A,0x34
+  018F    1D03    SNZB	0x3,2
+  0190    2995    JP	0x195
+168:              							{
+169:              								if(led_control.led_color == 0)
+  0191    0827    LD	A,0x27
+  0192    1D03    SNZB	0x3,2
+  0193    2995    JP	0x195
+170:              									led_control.led_color = 0;
+  0194    01A7    CLR	0x27
+171:              							}
+172:              						}
+173:              
+174:              						// 放在这里是因为先进入0x20功能点亮灯，把通道关了，不进入快闪模式
+175:              						if(soft_recieve_control.quick_flag == 1) 
+  0195    1F36    SNZB	0x36,6
+  0196    29C2    JP	0x1C2
+176:              						{
+177:              							if(led_control.last_quick_led >= 1)
+  0197    0832    LD	A,0x32
+  0198    1903    SZB	0x3,2
+  0199    299C    JP	0x19C
+178:              								led_control.led_mode = LED_MODE_QUICK; // 放在这里通道关闭后，可以继续闪烁
+  019A    3004    LDIA	0x4
+  019B    00A8    LD	0x28,A
+179:              							soft_recieve_control.quick_flag = 0;       // 清零是因为，按0x20功能，关闭通道，不进入快闪
+  019C    1336    CLRB	0x36,6
+  019D    29C2    JP	0x1C2
+180:              						}
+181:              						
+182:              						soft_recieve_control.clear_bit = 1;
+183:              					}
+184:              					else if(soft_recieve_control.function_data == 0xF0) // 雪花轮闪
+  019E    30F0    LDIA	0xF0
+  019F    063E    XORA	0x3E
+  01A0    1D03    SNZB	0x3,2
+  01A1    29C3    JP	0x1C3
+185:              					{
+186:              						soft_recieve_control.recieve_bit = 1;           // 锁定按键
+  01A2    14B6    SETB	0x36,1
+187:              
+188:              						// ny8_soft_recieve_control.rand数据1.3S改变一次，范围是1-8随机改变，发送端发送随机数的范围是1-8
+189:              						if((soft_data[2] & 0x0f) == soft_recieve_control.rand_num) 
+  01A3    1683    SETB	0x3,5
+  01A4    0822    LD	A,0x22
+  01A5    390F    ANDIA	0xF
+  01A6    1283    CLRB	0x3,5
+  01A7    0643    XORA	0x43
+  01A8    1903    SZB	0x3,2
+190:              						{
+191:              							if(!soft_recieve_control.Snowflake_flag) 
+  01A9    1A36    SZB	0x36,4
+  01AA    29B7    JP	0x1B7
+  01AB    3002    LDIA	0x2
+192:              							{
+193:              								soft_recieve_control.randnum_flag          = 1; 		  // 
+  01AC    16B6    SETB	0x36,5
+194:              								soft_recieve_control.Snowflake_flag        = 1; 		  // 置位雪花标志，启动雪花轮闪
+  01AD    1636    SETB	0x36,4
+195:              								soft_recieve_control.Snowflake_dit_off     = 0; 		  // 清零轮闪间隔计数器
+  01AE    01C6    CLR	0x46
+196:              								led_control.led_mode                       = LED_MODE_ON; // 设置灯光常亮，启动轮闪
+  01AF    00A8    LD	0x28,A
+197:              								led_control.led_color                      = ((soft_data[2] >> 4) & 0x0f);
+  01B0    1683    SETB	0x3,5
+  01B1    0E22    SWAPA	0x22
+  01B2    390F    ANDIA	0xF
+  01B3    1283    CLRB	0x3,5
+  01B4    00A7    LD	0x27,A
+  01B5    300F    LDIA	0xF
+  01B6    05A7    ANDR	0x27
+198:              							}
+199:              						} 
+200:              						
+201:              						// 实现灯光亮灭交替
+202:              						if(soft_recieve_control.Snowflake_flag) 
+  01B7    1E36    SNZB	0x36,4
+  01B8    29C2    JP	0x1C2
+203:              						{
+204:              							if(++soft_recieve_control.Snowflake_dit_off > 2) // 轮闪间隔判断，控制闪炼频率
+  01B9    3003    LDIA	0x3
+  01BA    0AC6    INCR	0x46
+  01BB    0246    SUBA	0x46
+  01BC    1C03    SNZB	0x3,0
+  01BD    29C2    JP	0x1C2
+205:              							{ 	
+206:              								// 灯光亮灭切换：熄灭
+207:              								led_control.led_mode 				   = 1;
+  01BE    01A8    CLR	0x28
+  01BF    0AA8    INCR	0x28
+208:              								soft_recieve_control.Snowflake_dit_off = 0; 
+  01C0    01C6    CLR	0x46
+209:              								soft_recieve_control.Snowflake_flag    = 0;
+  01C1    1236    CLRB	0x36,4
+210:              							}
+211:              						}
+212:              						
+213:              						soft_recieve_control.clear_bit = 1;         // 清除接收数据相关的标志位和计数值
+214:              					}
+215:              					if(soft_recieve_control.clear_bit)              // 清除接收数据相关的标志位和计数值
+  01C3    1D36    SNZB	0x36,2
+  01C4    0008    RET
+216:              					{
+217:              						soft_recieve_control.data_length_count = 0; // 清零接收字节计数器：重置已接收字节数，
+  01C5    01BC    CLR	0x3C
+218:              						soft_recieve_control.clear_bit         = 0; // 清零清除标志位本身：完成清除流程后，重置该标志位
+  01C6    1136    CLRB	0x36,2
+219:              						soft_recieve_control.Channel           = 0; // 清零通道1-8的数据
+  01C7    01C4    CLR	0x44
+220:              						soft_data[0]                           = 0; // 清零接收数据缓冲区首字节：清除帧头残留数据
+  01C8    1683    SETB	0x3,5
+  01C9    01A0    CLR	0x20
+221:              						soft_recieve_control.function_data     = 0; // 清零功能指令码缓存：清除本次处理的功能指令
+  01CA    1283    CLRB	0x3,5
+  01CB    01BE    CLR	0x3E
+  01CC    0008    RET
+222:              					} 
+223:              				}
+224:              			}
+225:              		}
+226:              	}    	
+227:              }
+228:              
+229:              
+230:              
+---- D:\QW\QW-中微\SC8F054_DK\IDE\SCMCU_IDE_V2.00.17_Beta3\data\sources\common\awmod.c ----------------------------------------------------------------------
+1:                // integer signed unsigned modulus
+2:                
+3:                signed int
+4:                #ifdef __PICC__
+5:                #warning TODO: update cgpic and this file to use the other prototype
+6:                __awmod(signed int divisor, signed int dividend)
+  04D0    01D0    CLR	0x50
+  04D1    1FCE    SNZB	0x4E,7
+  04D2    2CDA    JP	0x4DA
+  04D3    09CD    COMR	0x4D
+  04D4    09CE    COMR	0x4E
+  04D5    0ACD    INCR	0x4D
+  04D6    1903    SZB	0x3,2
+  04D7    0ACE    INCR	0x4E
+  04D8    01D0    CLR	0x50
+  04D9    0AD0    INCR	0x50
+  04DA    1FCC    SNZB	0x4C,7
+  04DB    2CE1    JP	0x4E1
+  04DC    09CB    COMR	0x4B
+  04DD    09CC    COMR	0x4C
+  04DE    0ACB    INCR	0x4B
+  04DF    1903    SZB	0x3,2
+  04E0    0ACC    INCR	0x4C
+  04E1    084B    LD	A,0x4B
+  04E2    044C    ORA	0x4C
+  04E3    1903    SZB	0x3,2
+  04E4    2D00    JP	0x500
+  04E5    01CF    CLR	0x4F
+  04E6    0ACF    INCR	0x4F
+  04E7    1BCC    SZB	0x4C,7
+  04E8    2CED    JP	0x4ED
+  04E9    1003    CLRB	0x3,0
+  04EA    0DCB    RLCR	0x4B
+  04EB    0DCC    RLCR	0x4C
+  04EC    2CE6    JP	0x4E6
+  04ED    084C    LD	A,0x4C
+  04EE    024E    SUBA	0x4E
+  04EF    1D03    SNZB	0x3,2
+  04F0    2CF3    JP	0x4F3
+  04F1    084B    LD	A,0x4B
+  04F2    024D    SUBA	0x4D
+  04F3    1C03    SNZB	0x3,0
+  04F4    2CFC    JP	0x4FC
+  04F5    084B    LD	A,0x4B
+  04F6    02CD    SUBR	0x4D
+  04F7    084C    LD	A,0x4C
+  04F8    1C03    SNZB	0x3,0
+  04F9    03CE    DECR	0x4E
+  04FA    02CE    SUBR	0x4E
+  04FB    1003    CLRB	0x3,0
+  04FC    0CCC    RRCR	0x4C
+  04FD    0CCB    RRCR	0x4B
+  04FE    0BCF    SZDECR	0x4F
+  04FF    2CED    JP	0x4ED
+  0500    0850    LD	A,0x50
+  0501    1903    SZB	0x3,2
+  0502    2D08    JP	0x508
+  0503    09CD    COMR	0x4D
+  0504    09CE    COMR	0x4E
+  0505    0ACD    INCR	0x4D
+  0506    1903    SZB	0x3,2
+  0507    0ACE    INCR	0x4E
+  0508    084E    LD	A,0x4E
+  0509    00CC    LD	0x4C,A
+  050A    084D    LD	A,0x4D
+  050B    00CB    LD	0x4B,A
+  050C    0008    RET
+7:                #else
+8:                __awmod(signed int dividend, signed int divisor)
+9:                #endif
+10:               {
+11:               	unsigned char	counter, sign;
+12:               
+13:               	sign = 0;
+14:               	if(dividend < 0) {
+15:               		dividend = -dividend;
+16:               		sign = 1;
+17:               	}
+18:               	if(divisor < 0)
+19:               		divisor = -divisor;
+20:               	if(divisor != 0) {
+21:               		counter = 1;
+22:               		while(((unsigned int)divisor & 0x8000U) == 0) {
+23:               			divisor <<= 1;
+24:               			counter++;
+25:               		}
+26:               		do {
+27:               			if((unsigned int)divisor <= (unsigned int)dividend)
+28:               				dividend -= divisor;
+29:               			*(unsigned int *)&divisor >>= 1;
+30:               		} while(--counter != 0);
+31:               	}
+32:               	if(sign)
+33:               		dividend = -dividend;
+34:               	return dividend;
+35:               }
+---- D:\QW\QW-项目\QW-247\程序\手环-中微-程序-16通道-2.4G\QW-247_SC8F054_V1.0_16M2T_16Channel\SC8F054_key.c ----------------------------------------------------------------------
+1:                #include <sc.h>					
+2:                #include "SC8F054_define.h"	
+3:                #include "SC8F054_var.h"	
+4:                
+5:                /**
+6:                 * 函数名称：按键扫描函数
+7:                 * 功能说明：检测按键状态（按下/抬起），并更新相应的按键状态标志位，通常需要周期性调用此函数进行按键检测
+8:                 */
+9:                void Key_Scan(void)
+10:               {
+11:               	if (KEY)                                  // 检测到按键被按下
+  0544    1C06    SNZB	0x6,0
+  0545    2D66    JP	0x566
+12:                   {
+13:                       if(!key_control.key_down_pb)          // 如果是刚按下（按键按下标志位未置位）
+  0546    18E9    SZB	0x69,1
+  0547    2D52    JP	0x552
+14:                       {
+15:               			key_control.key_rec_flag_pb  = 1; // 
+  0548    1769    SETB	0x69,6
+16:                           key_control.key_up_pb        = 0; // 清除按键抬起标志
+  0549    11E9    CLRB	0x69,3
+17:                           key_control.key_down_pb      = 1; // 置位按键按下标志
+  054A    14E9    SETB	0x69,1
+18:                           key_control.key_down_time_pb = 0; // 清零按键按下时间计数器
+  054B    01EB    CLR	0x6B
+  054C    01EC    CLR	0x6C
+19:                           key_control.key_up_time_pb   = 0; // 清零抬起时间计数器
+  054D    01EA    CLR	0x6A
+20:                           key_control.key_flag_pb      = 0; // 清除短按标志
+  054E    1169    CLRB	0x69,2
+21:                           key_control.key_long_flag_pb = 0; // 清除长按标志
+  054F    1269    CLRB	0x69,4
+22:                           key_control.key_pb           = 0; // 清除按键事件标志
+  0550    1069    CLRB	0x69,0
+23:                       }
+  0551    0008    RET
+24:                       else                                                                                   
+25:                       {
+26:                           if((key_control.key_down_time_pb > KEY_SHORT_DOWN_TIME) && !key_control.key_flag_pb)     // 短按70ms且短按标志未置位时，置位短按标志
+  0552    3000    LDIA	0x0
+  0553    026C    SUBA	0x6C
+  0554    3047    LDIA	0x47
+  0555    1903    SZB	0x3,2
+  0556    026B    SUBA	0x6B
+  0557    1803    SZB	0x3,0
+  0558    1969    SZB	0x69,2
+  0559    2D5B    JP	0x55B
+27:                           {
+28:                               key_control.key_flag_pb = 1;  // 置位短按标志
+  055A    1569    SETB	0x69,2
+29:                           }
+30:                           if((key_control.key_down_time_pb > KEY_LONG_DOWN_TIME) && !key_control.key_long_flag_pb) // 长按1S且长按标志未置位时，置位长按标志并触发按键事件
+  055B    3003    LDIA	0x3
+  055C    026C    SUBA	0x6C
+  055D    30E9    LDIA	0xE9
+  055E    1903    SZB	0x3,2
+  055F    026B    SUBA	0x6B
+  0560    1803    SZB	0x3,0
+  0561    1A69    SZB	0x69,4
+  0562    0008    RET
+31:                           {
+32:                               key_control.key_long_flag_pb = 1; // 置位长按标志
+  0563    1669    SETB	0x69,4
+33:                               key_control.key_pb           = 1; // 置位按键事件标志
+  0564    1469    SETB	0x69,0
+  0565    0008    RET
+34:                           }
+35:                       }
+36:                   }
+37:                   else
+38:                   {
+39:                   	// 按键刚抬起
+40:                       if(!key_control.key_up_pb)                                           
+  0566    19E9    SZB	0x69,3
+  0567    2D6B    JP	0x56B
+41:                       {
+42:                           key_control.key_up_pb      = 1;
+  0568    15E9    SETB	0x69,3
+43:                           key_control.key_up_time_pb = 0;
+  0569    01EA    CLR	0x6A
+44:                       }
+  056A    0008    RET
+45:                       else // 按键持续抬起
+46:                       {
+47:                           if(key_control.key_up_time_pb > 50)  // 按键抬起时间大于50MS   按下20MS+松手30MS
+  056B    3033    LDIA	0x33
+  056C    026A    SUBA	0x6A
+  056D    1C03    SNZB	0x3,0
+  056E    0008    RET
+48:                           {
+49:                               key_control.key_down_pb = 0;     // 清除按键按下标志位，恢复按键空闲状态标识
+  056F    10E9    CLRB	0x69,1
+50:                               if(key_control.key_flag_pb && (key_control.key_long_flag_pb == 0)) // 短按生效
+  0570    1969    SZB	0x69,2
+  0571    1A69    SZB	0x69,4
+  0572    0008    RET
+51:                               {
+52:               					key_control.key_rec_flag_pb = 0;
+  0573    1369    CLRB	0x69,6
+53:               					key_control.key_flag_pb 	= 0; // 清除短按标志位，防止短按事件重复触发
+  0574    1169    CLRB	0x69,2
+54:                                   key_control.key_pb      	= 1; // 置位按键事件标志，触发后续短按事件处理
+  0575    1469    SETB	0x69,0
+  0576    0008    RET
+55:                               }
+56:                           }
+57:                       }
+58:                   }
+59:               }
+60:               
+61:               /**
+62:                * 函数名称：按键事件处理函数
+63:                * 功能说明：根据按键标志位判断是长按还是短按，并执行相应的处理逻辑，需要在主循环中调用，处理已触发的按键事件
+64:                */
+65:               void Key_Event(void)
+66:               {
+67:               	if(key_control.key_pb && key_control.key_long_flag_pb)  // 长按事件
+  0634    1869    SZB	0x69,0
+  0635    1E69    SNZB	0x69,4
+  0636    2E42    JP	0x642
+68:                   {
+69:               		key_control.key_pb = 0;                    // 清除按键事件标志位
+  0637    1069    CLRB	0x69,0
+70:                       if(!soft_recieve_control.recieve_bit)      // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
+  0638    18B6    SZB	0x36,1
+  0639    0008    RET
+  063A    3003    LDIA	0x3
+71:               		{
+72:               			led_control.led_color            = 0;  // 灯光熄灭
+  063B    01A7    CLR	0x27
+73:               			led_control.led_mode             = 0;  // 进入熄灭模式		
+  063C    01A8    CLR	0x28
+74:               			sleep_control.sleep_count        = 3;  // 睡眠计数清零
+  063D    00F8    LD	0x78,A
+  063E    01F9    CLR	0x79
+75:               			sleep_control.sleep_flag         = 1;  // 休眠标志位置0，进入休眠
+  063F    1477    SETB	0x77,0
+76:               			sleep_control.recieve_sleep_flag = 0;
+  0640    10F7    CLRB	0x77,1
+77:                       }
+78:                   }
+  0641    0008    RET
+79:                   else if(key_control.key_pb == 1)                // 短按事件
+  0642    1C69    SNZB	0x69,0
+  0643    0008    RET
+80:                   {
+81:               	    key_control.key_pb = 0;   				    // 清除短按键事件标志位
+  0644    1069    CLRB	0x69,0
+82:               		if(!soft_recieve_control.recieve_bit)       // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
+  0645    18B6    SZB	0x36,1
+  0646    0008    RET
+83:               		{
+84:                           sleep_control.sleep_count 	      = 20; // 按下按键30m内不进入休眠，=10防止未接收数据进入休眠
+  0647    3014    LDIA	0x14
+  0648    00F8    LD	0x78,A
+  0649    3010    LDIA	0x10
+  064A    01F9    CLR	0x79
+85:               			sleep_control.recieve_sleep_flag  = 1;  // 置1，不进入休眠
+  064B    14F7    SETB	0x77,1
+86:               			soft_recieve_control.randnum_flag = 0;  // 禁止获取随机数
+  064C    12B6    CLRB	0x36,5
+87:                
+88:               			if(led_control.led_mode == 16)
+  064D    0628    XORA	0x28
+  064E    1D03    SNZB	0x3,2
+  064F    2E54    JP	0x654
+  0650    3002    LDIA	0x2
+89:                           {
+90:               				led_control.led_color = 0;          // 重置LED颜色
+  0651    01A7    CLR	0x27
+91:                               led_control.led_mode  = 2;          // 切换到模式2
+  0652    00A8    LD	0x28,A
+92:                           }				
+  0653    0008    RET
+  0654    3010    LDIA	0x10
+93:               			else 
+94:                           {
+95:               				led_control.led_color++;            // 切换颜色
+  0655    0AA7    INCR	0x27
+96:                               if(led_control.led_color >= 16)     // 当切换颜色到16时
+  0656    0227    SUBA	0x27
+  0657    1C03    SNZB	0x3,0
+  0658    0008    RET
+97:                               {
+98:                               	led_control.led_mode = 16;      // 进入模式16
+  0659    3010    LDIA	0x10
+  065A    00A8    LD	0x28,A
+  065B    0008    RET
+99:                               }
+100:                          }
+101:              			
+102:              										   
+103:              		}
+104:                  }
+105:              }
+106:              
+107:              
+108:              /**
+109:               * 函数名称：按键定时器检测函数
+110:               * 功能说明：负责按键按下和抬起时间的计数，需由定时器中断周期性调用，
+111:               * 通常由定时中断触发，用于实现按键长按、短按的时间判断
+112:               */
+113:              void Key_Check_Time(void)
+114:              {
+115:              	if(key_control.key_down_pb)                              // 如果按键处于按下状态，累加按下时间计数器
+  06B0    1CE9    SNZB	0x69,1
+  06B1    2EC0    JP	0x6C0
+116:              	{
+117:              		key_control.key_down_time_pb++;                      // 累加按下时间   						
+  06B2    0AEB    INCR	0x6B
+  06B3    1903    SZB	0x3,2
+  06B4    0AEC    INCR	0x6C
+118:              		if(key_control.key_down_time_pb >= KEY_DOWN_TIMEOUT) // 按下达到最大3000ms后保持不变
+  06B5    300B    LDIA	0xB
+  06B6    026C    SUBA	0x6C
+  06B7    30B8    LDIA	0xB8
+  06B8    1903    SZB	0x3,2
+  06B9    026B    SUBA	0x6B
+  06BA    1C03    SNZB	0x3,0
+  06BB    2EC0    JP	0x6C0
+119:              		{    			    
+120:              			key_control.key_down_time_pb = KEY_DOWN_TIMEOUT; 
+  06BC    30B8    LDIA	0xB8
+  06BD    00EB    LD	0x6B,A
+  06BE    300B    LDIA	0xB
+  06BF    00EC    LD	0x6C,A
+121:              		}
+122:              	}
+123:              	if(key_control.key_up_pb)                                // 如果按键处于抬起状态，累加按下时间计数器
+  06C0    1DE9    SNZB	0x69,3
+  06C1    0008    RET
+124:              	{
+125:              		key_control.key_up_time_pb++;                        // 累加抬起时间         
+  06C2    0AEA    INCR	0x6A
+126:              		if(key_control.key_up_time_pb >= KEY_UP_TIMEOUT)     // 抬起达到最大255ms后保持不变
+  06C3    0F6A    SZINCA	0x6A
+  06C4    0008    RET
+127:              		{				    
+128:              			key_control.key_up_time_pb = KEY_UP_TIMEOUT;
+  06C5    30FF    LDIA	0xFF
+  06C6    00EA    LD	0x6A,A
+  06C7    0008    RET
+129:              		}
+130:              	}
+131:              }
+132:              
+133:              
+134:              
+135:              
+136:              
+137:              
+138:              
+139:              
+140:              
+141:              
+142:              
+143:              
+---- D:\QW\QW-项目\QW-247\程序\手环-中微-程序-16通道-2.4G\QW-247_SC8F054_V1.0_16M2T_16Channel\SC8F054_led.c ----------------------------------------------------------------------
+1:                #include <sc.h>					
+2:                #include "SC8F054_define.h"	
+3:                #include "SC8F054_var.h"	
+4:                
+5:                
+6:                
+7:                /**
+8:                 * 函数名称：
+9:                 */	
+10:               void map_0_255_to_1000_0(U8 red_duty, U8 green_duty, U8 blue_duty)
+11:               {
+12:               	unsigned int duty_10bit = 0;
+13:               	
+14:               	duty_10bit   = (unsigned int)((unsigned long)red_duty * 1023 / 255);
+  034D    30FF    LDIA	0xFF
+  034E    00D7    LD	0x57,A
+  034F    01D8    CLR	0x58
+  0350    01D9    CLR	0x59
+  0351    01DA    CLR	0x5A
+  0352    0866    LD	A,0x66
+  0353    00CB    LD	0x4B,A
+  0354    3003    LDIA	0x3
+  0355    01CC    CLR	0x4C
+  0356    01CD    CLR	0x4D
+  0357    01CE    CLR	0x4E
+  0358    01D2    CLR	0x52
+  0359    01D1    CLR	0x51
+  035A    00D0    LD	0x50,A
+  035B    30FF    LDIA	0xFF
+  035C    00CF    LD	0x4F,A
+  035D    2577    CALL	0x577
+  035E    084E    LD	A,0x4E
+  035F    00DE    LD	0x5E,A
+  0360    084D    LD	A,0x4D
+  0361    00DD    LD	0x5D,A
+  0362    084C    LD	A,0x4C
+  0363    00DC    LD	0x5C,A
+  0364    084B    LD	A,0x4B
+  0365    00DB    LD	0x5B,A
+  0366    2488    CALL	0x488
+  0367    0858    LD	A,0x58
+  0368    00E8    LD	0x68,A
+  0369    0857    LD	A,0x57
+  036A    00E7    LD	0x67,A
+15:               	PWMD23H  	 = 0x00; 
+  036B    1683    SETB	0x3,5
+  036C    019E    CLR	0x1E
+16:               	PWMD23H 	|= ((duty_10bit >> 8) & 0x03); // 红色PWMD2占空比高2位
+  036D    1283    CLRB	0x3,5
+  036E    0868    LD	A,0x68
+  036F    3903    ANDIA	0x3
+  0370    1683    SETB	0x3,5
+  0371    049E    ORR	0x1E
+17:               	PWMD2L   	 = red_duty;  	               // 红色PWMD2占空比低8位
+  0372    1283    CLRB	0x3,5
+  0373    0866    LD	A,0x66
+  0374    1683    SETB	0x3,5
+  0375    009B    LD	0x1B,A
+18:               	
+19:               	// - - PWMD1:9 PWMD1:8 - - PWMD0:9 PWMD0:8
+20:               	duty_10bit   = (unsigned int)((unsigned long)green_duty * 1023 / 255);
+  0376    30FF    LDIA	0xFF
+  0377    1283    CLRB	0x3,5
+  0378    00D7    LD	0x57,A
+  0379    01D8    CLR	0x58
+  037A    01D9    CLR	0x59
+  037B    01DA    CLR	0x5A
+  037C    0864    LD	A,0x64
+  037D    00CB    LD	0x4B,A
+  037E    3003    LDIA	0x3
+  037F    01CC    CLR	0x4C
+  0380    01CD    CLR	0x4D
+  0381    01CE    CLR	0x4E
+  0382    01D2    CLR	0x52
+  0383    01D1    CLR	0x51
+  0384    00D0    LD	0x50,A
+  0385    30FF    LDIA	0xFF
+  0386    00CF    LD	0x4F,A
+  0387    2577    CALL	0x577
+  0388    084E    LD	A,0x4E
+  0389    00DE    LD	0x5E,A
+  038A    084D    LD	A,0x4D
+  038B    00DD    LD	0x5D,A
+  038C    084C    LD	A,0x4C
+  038D    00DC    LD	0x5C,A
+  038E    084B    LD	A,0x4B
+  038F    00DB    LD	0x5B,A
+  0390    2488    CALL	0x488
+  0391    0858    LD	A,0x58
+  0392    00E8    LD	0x68,A
+  0393    0857    LD	A,0x57
+  0394    00E7    LD	0x67,A
+21:               	PWMD01H      = 0x00;	  // 绿色PWMD1占空比高2位
+  0395    019E    CLR	0x1E
+22:               	PWMD01H     |= ((duty_10bit >> 8) & 0x03) << 4; 	  // 绿色PWMD1占空比高2位
+  0396    0E68    SWAPA	0x68
+  0397    3930    ANDIA	0x30
+  0398    049E    ORR	0x1E
+23:               	PWMD1L       = green_duty;  	  // 绿色PWMD1占空比低8位
+  0399    0864    LD	A,0x64
+  039A    009A    LD	0x1A,A
+24:               	
+25:               	duty_10bit   = (unsigned int)((unsigned long)blue_duty * 1023 / 255);
+  039B    30FF    LDIA	0xFF
+  039C    00D7    LD	0x57,A
+  039D    01D8    CLR	0x58
+  039E    01D9    CLR	0x59
+  039F    01DA    CLR	0x5A
+  03A0    0865    LD	A,0x65
+  03A1    00CB    LD	0x4B,A
+  03A2    3003    LDIA	0x3
+  03A3    01CC    CLR	0x4C
+  03A4    01CD    CLR	0x4D
+  03A5    01CE    CLR	0x4E
+  03A6    01D2    CLR	0x52
+  03A7    01D1    CLR	0x51
+  03A8    00D0    LD	0x50,A
+  03A9    30FF    LDIA	0xFF
+  03AA    00CF    LD	0x4F,A
+  03AB    2577    CALL	0x577
+  03AC    084E    LD	A,0x4E
+  03AD    00DE    LD	0x5E,A
+  03AE    084D    LD	A,0x4D
+  03AF    00DD    LD	0x5D,A
+  03B0    084C    LD	A,0x4C
+  03B1    00DC    LD	0x5C,A
+  03B2    084B    LD	A,0x4B
+  03B3    00DB    LD	0x5B,A
+  03B4    2488    CALL	0x488
+  03B5    0858    LD	A,0x58
+  03B6    00E8    LD	0x68,A
+  03B7    0857    LD	A,0x57
+  03B8    00E7    LD	0x67,A
+26:               	PWMTH 	     = 0x0F; 	  // 蓝色PWMD4占空比高2位
+  03B9    300F    LDIA	0xF
+  03BA    0098    LD	0x18,A
+27:               	PWMTH 	    |= ((duty_10bit >> 8) & 0x03) << 4; // 蓝色PWMD4占空比高2位
+  03BB    0E68    SWAPA	0x68
+  03BC    3930    ANDIA	0x30
+  03BD    0498    ORR	0x18
+28:               	PWMD4L       = blue_duty;  	  // 蓝色PWMD4占空比低8位
+  03BE    0865    LD	A,0x65
+  03BF    009B    LD	0x1B,A
+  03C0    0008    RET
+29:               }
+30:               
+31:               
+32:               
+33:               
+34:               
+35:               
+36:               /**
+37:                * 函数功能：LED颜色配置函数
+38:                * 功能说明：根据目标LED颜色（led_color）更新RGB三色的占空比，仅在颜色变化且非特定模式（mode≠1）时执行
+39:                * 核心逻辑：通过switch-case匹配预设颜色，设置红（R）、绿（G）、蓝（B）三色的目标占空比，最终同步到"设定占空比"变量供模式控制使用
+40:                * 备注：占空比范围为0-255，0表示该颜色通道关闭，255表示该颜色通道最大亮度
+41:                */
+42:               void Led_Color_Prg(void)
+43:               {
+44:               	// 条件判断：1. 当前记录的颜色（color_p）≠目标颜色（led_color）；2. LED模式≠1（排除特定不允许颜色切换的模式）
+45:               	if((led_control.color_p != led_control.led_color) && (led_control.led_mode != 1))
+  03C1    082D    LD	A,0x2D
+  03C2    0627    XORA	0x27
+  03C3    1903    SZB	0x3,2
+  03C4    2C2F    JP	0x42F
+  03C5    0328    DECA	0x28
+  03C6    1903    SZB	0x3,2
+  03C7    2C2F    JP	0x42F
+46:               	{
+47:               		led_control.color_p = led_control.led_color; // 更新记录的颜色，避免重复执行配置             
+  03C8    0827    LD	A,0x27
+  03C9    00AD    LD	0x2D,A
+48:               		switch(led_control.led_color)
+  03CA    2C1E    JP	0x41E
+49:               	    {
+50:               			case LED_OFF :             // 关闭
+51:               				led_control.red_duty   = 0;
+  03CB    01A1    CLR	0x21
+52:               				led_control.green_duty = 0;
+  03CC    01A2    CLR	0x22
+53:               				led_control.blue_duty  = 0;
+  03CD    01A3    CLR	0x23
+54:               				PWMCON0    = 0X00;	
+  03CE    0195    CLR	0x15
+55:               				break;
+  03CF    2C29    JP	0x429
+56:               			case LED_RED:              // 红色
+57:               				led_control.red_duty   = 255;
+  03D0    30FF    LDIA	0xFF
+  03D1    00A1    LD	0x21,A
+58:               				led_control.green_duty = 0;
+  03D2    01A2    CLR	0x22
+  03D3    3016    LDIA	0x16
+59:               				led_control.blue_duty  = 0;
+  03D4    01A3    CLR	0x23
+  03D5    2C15    JP	0x415
+60:               				PWMCON0    = 0X16;	
+  03D6    30FF    LDIA	0xFF
+61:               				break;
+62:               	        case LED_GREEN:            // 绿色
+63:               				led_control.red_duty   = 0;
+  03D7    01A1    CLR	0x21
+64:               				led_control.green_duty = 255;
+  03D8    00A2    LD	0x22,A
+  03D9    2BD3    JP	0x3D3
+65:               				led_control.blue_duty  = 0;
+66:               				PWMCON0    = 0X16;	
+67:               				break;
+68:               	        case LED_BLUE:             // 蓝色
+69:               				led_control.red_duty   = 0;
+  03DA    01A1    CLR	0x21
+70:               				led_control.green_duty = 0;
+  03DB    01A2    CLR	0x22
+  03DC    2BF4    JP	0x3F4
+71:               				led_control.blue_duty  = 255;
+72:               				PWMCON0    = 0X16;	
+73:               				break;
+74:               	        case LED_PINK:             // 粉色
+75:               				led_control.red_duty   = 255;
+  03DD    30FF    LDIA	0xFF
+  03DE    00A1    LD	0x21,A
+  03DF    303C    LDIA	0x3C
+76:               				led_control.green_duty = 0;
+  03E0    01A2    CLR	0x22
+77:               				led_control.blue_duty  = 60;
+  03E1    2C13    JP	0x413
+78:               				PWMCON0    = 0X16;
+79:               				break;
+80:               	        case LED_WHITE:            // 白色
+81:               				led_control.red_duty   = 255;
+  03E2    30FF    LDIA	0xFF
+  03E3    00A1    LD	0x21,A
+82:               				led_control.green_duty = 255;
+  03E4    00A2    LD	0x22,A
+  03E5    2C13    JP	0x413
+83:               				led_control.blue_duty  = 255;
+84:               				PWMCON0    = 0X16;	
+85:               				break;
+86:               	        case LED_YELLOW:           // 黄色
+87:               				led_control.red_duty   = 160;
+  03E6    30A0    LDIA	0xA0
+  03E7    00A1    LD	0x21,A
+88:               				led_control.green_duty = 50;
+  03E8    3032    LDIA	0x32
+  03E9    00A2    LD	0x22,A
+89:               				led_control.blue_duty  = 0;
+  03EA    01A3    CLR	0x23
+  03EB    2C14    JP	0x414
+90:               				PWMCON0    = 0X16;	
+91:               				break;
+92:               	        case LED_LIGHT_GREEN:      // 淡绿
+93:               				led_control.red_duty   = 74;
+  03EC    304A    LDIA	0x4A
+  03ED    00A1    LD	0x21,A
+94:               				led_control.green_duty = 255;
+  03EE    30FF    LDIA	0xFF
+  03EF    2BF9    JP	0x3F9
+95:               				led_control.blue_duty  = 63;
+96:               				PWMCON0    = 0X16;
+97:               				break;
+98:               	        case LED_LIGHT_BLUE:       // 淡蓝
+99:               				led_control.red_duty   = 50;
+  03F0    3032    LDIA	0x32
+  03F1    00A1    LD	0x21,A
+100:              				led_control.green_duty = 100;
+  03F2    3064    LDIA	0x64
+  03F3    00A2    LD	0x22,A
+101:              				led_control.blue_duty  = 255;
+  03F4    30FF    LDIA	0xFF
+  03F5    2C13    JP	0x413
+102:              				PWMCON0    = 0X16; 
+103:              				break;
+104:              	        case LED_LIGHT_PINK:       // 淡粉
+105:              				led_control.red_duty   = 205;
+  03F6    30CD    LDIA	0xCD
+  03F7    00A1    LD	0x21,A
+106:              				led_control.green_duty = 43;
+  03F8    302B    LDIA	0x2B
+  03F9    00A2    LD	0x22,A
+107:              				led_control.blue_duty  = 63;
+  03FA    303F    LDIA	0x3F
+  03FB    2C13    JP	0x413
+108:              				PWMCON0 = 0X16; 
+109:              				break;
+110:              	        case LED_LIGHT_YELLOW:     // 淡黄
+111:              				led_control.red_duty   = 255;
+  03FC    30FF    LDIA	0xFF
+  03FD    00A1    LD	0x21,A
+112:              				led_control.green_duty = 160;
+  03FE    30A0    LDIA	0xA0
+  03FF    00A2    LD	0x22,A
+  0400    3016    LDIA	0x16
+113:              				led_control.blue_duty  = 1;
+  0401    01A3    CLR	0x23
+  0402    0AA3    INCR	0x23
+  0403    2C15    JP	0x415
+114:              				PWMCON0 = 0X16; 
+115:              				break;
+116:              	        case LED_PURPLE:           // 紫色
+117:              				led_control.red_duty   = 255;
+  0404    30FF    LDIA	0xFF
+  0405    00A1    LD	0x21,A
+118:              				led_control.green_duty = 20;
+  0406    3014    LDIA	0x14
+  0407    00A2    LD	0x22,A
+119:              				led_control.blue_duty  = 200;
+  0408    30C8    LDIA	0xC8
+  0409    2C13    JP	0x413
+120:              				PWMCON0 = 0X16; 
+121:              				break;
+122:              	        case LED_ORANGE:           // 橙色
+123:              				led_control.red_duty   = 255;
+  040A    30FF    LDIA	0xFF
+  040B    00A1    LD	0x21,A
+124:              				led_control.green_duty = 20;
+  040C    3014    LDIA	0x14
+  040D    2BE9    JP	0x3E9
+125:              				led_control.blue_duty  = 0;
+126:              				PWMCON0 = 0X16; 
+127:              				break;
+128:              	        case LED_DARK_GREEN:       // 深绿
+129:              				led_control.red_duty   = 10;
+  040E    300A    LDIA	0xA
+  040F    00A1    LD	0x21,A
+130:              				led_control.green_duty = 180;
+  0410    30B4    LDIA	0xB4
+  0411    00A2    LD	0x22,A
+131:              				led_control.blue_duty  = 50;
+  0412    3032    LDIA	0x32
+  0413    00A3    LD	0x23,A
+132:              				PWMCON0 = 0X16; 
+  0414    3016    LDIA	0x16
+  0415    0095    LD	0x15,A
+133:              				break;
+  0416    2C29    JP	0x429
+  0417    30BF    LDIA	0xBF
+134:              	        case LED_CYAN:             // 蓝绿
+135:              				led_control.red_duty   = 0;
+  0418    01A1    CLR	0x21
+136:              				led_control.green_duty = 191;
+  0419    2BF3    JP	0x3F3
+137:              				led_control.blue_duty  = 255;
+138:              				PWMCON0 = 0X16;
+139:              				break;
+140:              	        case LED_TURQUOISE:        // 宝石绿
+141:              				led_control.red_duty   = 100;
+  041A    3064    LDIA	0x64
+  041B    00A1    LD	0x21,A
+142:              				led_control.green_duty = 255;
+  041C    30FF    LDIA	0xFF
+  041D    2BE9    JP	0x3E9
+  041E    0827    LD	A,0x27
+  041F    0084    LD	0x4,A
+  0420    3010    LDIA	0x10
+  0421    0204    SUBA	0x4
+  0422    1803    SZB	0x3,0
+  0423    2C29    JP	0x429
+  0424    3007    LDIA	0x7
+  0425    008A    LD	0xA,A
+  0426    3029    LDIA	0x29
+  0427    0704    ADDA	0x4
+  0428    0082    LD	0x2,A
+143:              				led_control.blue_duty  = 0;
+144:              				PWMCON0 = 0X16;
+145:              				break;
+146:              	        default:
+147:              	        break;
+148:              	    } 
+149:              
+150:              	    // 将配置好的RGB占空比同步到"设定占空比"变量（set_xxx_duty），供后续模式控制（如常亮、闪烁）调用
+151:              	   	led_control.set_red_duty   = led_control.red_duty;
+  0429    0821    LD	A,0x21
+  042A    00A4    LD	0x24,A
+152:              		led_control.set_green_duty = led_control.green_duty;
+  042B    0822    LD	A,0x22
+  042C    00A5    LD	0x25,A
+153:              		led_control.set_blue_duty  = led_control.blue_duty;
+  042D    0823    LD	A,0x23
+  042E    00A6    LD	0x26,A
+154:              	}
+155:              	
+156:              	map_0_255_to_1000_0(led_control.red_duty, led_control.green_duty, led_control.blue_duty);
+  042F    0822    LD	A,0x22
+  0430    00E4    LD	0x64,A
+  0431    0823    LD	A,0x23
+  0432    00E5    LD	0x65,A
+  0433    0821    LD	A,0x21
+  0434    2B4C    JP	0x34C
+157:              
+158:              }
+159:              
+160:              
+161:              
+162:              
+163:              
+---- D:\QW\QW-中微\SC8F054_DK\IDE\SCMCU_IDE_V2.00.17_Beta3\data\sources\common\Umul32.c ----------------------------------------------------------------------
+1:                // 32 x 32 bit multiplication with 32 bit result
+2:                #ifdef _PIC18
+3:                #define _Has_hardware_multiply 1
+4:                #else
+5:                #define _Has_hardware_multiply 0
+6:                #endif
+7:                
+8:                #if defined(_PIC14E) || defined(_PIC14EX) || defined(_PIC18)
+9:                #define _Has_large_call_stack 1
+10:               #else
+11:               #define _Has_large_call_stack 0
+12:               #endif
+13:               
+14:               unsigned long
+15:               __lmul(unsigned long multiplier, unsigned long multiplicand)
+  0577    01D3    CLR	0x53
+  0578    01D4    CLR	0x54
+  0579    01D5    CLR	0x55
+  057A    01D6    CLR	0x56
+  057B    1C4B    SNZB	0x4B,0
+  057C    2D91    JP	0x591
+  057D    084F    LD	A,0x4F
+  057E    07D3    ADDR	0x53
+  057F    0850    LD	A,0x50
+  0580    1103    CLRB	0x3,2
+  0581    1803    SZB	0x3,0
+  0582    3E01    ADDIA	0x1
+  0583    1D03    SNZB	0x3,2
+  0584    07D4    ADDR	0x54
+  0585    0851    LD	A,0x51
+  0586    1103    CLRB	0x3,2
+  0587    1803    SZB	0x3,0
+  0588    3E01    ADDIA	0x1
+  0589    1D03    SNZB	0x3,2
+  058A    07D5    ADDR	0x55
+  058B    0852    LD	A,0x52
+  058C    1103    CLRB	0x3,2
+  058D    1803    SZB	0x3,0
+  058E    3E01    ADDIA	0x1
+  058F    1D03    SNZB	0x3,2
+  0590    07D6    ADDR	0x56
+  0591    1003    CLRB	0x3,0
+  0592    0DCF    RLCR	0x4F
+  0593    0DD0    RLCR	0x50
+  0594    0DD1    RLCR	0x51
+  0595    0DD2    RLCR	0x52
+  0596    1003    CLRB	0x3,0
+  0597    0CCE    RRCR	0x4E
+  0598    0CCD    RRCR	0x4D
+  0599    0CCC    RRCR	0x4C
+  059A    0CCB    RRCR	0x4B
+  059B    084E    LD	A,0x4E
+  059C    044D    ORA	0x4D
+  059D    044C    ORA	0x4C
+  059E    044B    ORA	0x4B
+  059F    1D03    SNZB	0x3,2
+  05A0    2D7B    JP	0x57B
+  05A1    0856    LD	A,0x56
+  05A2    00CE    LD	0x4E,A
+  05A3    0855    LD	A,0x55
+  05A4    00CD    LD	0x4D,A
+  05A5    0854    LD	A,0x54
+  05A6    00CC    LD	0x4C,A
+  05A7    0853    LD	A,0x53
+  05A8    00CB    LD	0x4B,A
+  05A9    0008    RET
+16:               {
+17:               	unsigned long product;
+18:               
+19:               #define LOWBYTE(x)  (*(unsigned char *)(&x))
+20:               #define LMIDBYTE(x) (*(((unsigned char *)(&x))+1))
+21:               #define HMIDBYTE(x) (*(((unsigned char *)(&x))+2))
+22:               #define HIGHBYTE(x) (*(((unsigned char *)(&x))+3))
+23:               
+24:               #if (_Has_hardware_multiply || _Has_large_call_stack) && defined(__OPTIMIZE_SPEED__)
+25:               	{
+26:               
+27:               #define USE_SHRINK
+28:               
+29:               /*
+30:               a 32-bit multiply can be decomposed into the sum of ten 8-bit multiplies
+31:                            a  b  c  d
+32:               *            e  f  g  h
+33:               -----------------------
+34:                          |         dh
+35:                          |      ch  0
+36:                          |   bh  0  0
+37:                          |ah  0  0  0
+38:                          |      dg  0
+39:                          |   cg  0  0
+40:                          |bg  0  0  0
+41:                        ag| 0  0  0  0 (we ignore this intermediate product
+42:                                        because it does not affect the low 32 bits of the result)
+43:                          |   df  0  0
+44:                          |cf  0  0  0
+45:                        bf| 0  0  0  0 (ignore)
+46:                     af  0| 0  0  0  0 (ignore)
+47:                          |de  0  0  0
+48:                        ce| 0  0  0  0 (ignore)
+49:                     be  0| 0  0  0  0 (ignore)
+50:               +  ae  0  0| 0  0  0  0 (ignore)
+51:               =======================
+52:                */
+53:               		product =  (unsigned int)LOWBYTE(multiplier) * LOWBYTE(multiplicand);
+54:               
+55:               #if defined(USE_MASKS)
+56:               		product += ((unsigned long)
+57:               			     ((unsigned int)LOWBYTE(multiplier) * LMIDBYTE(multiplicand))
+58:               			     +
+59:               			     ((unsigned int)LMIDBYTE(multiplier) * LOWBYTE(multiplicand)))
+60:               			<< 8;
+61:               
+62:               		product += ((unsigned long)
+63:               			    ((unsigned int)LOWBYTE(multiplier) * HMIDBYTE(multiplicand))
+64:               			    +
+65:               			    ((unsigned int)LMIDBYTE(multiplier) * LMIDBYTE(multiplicand))
+66:               			    +
+67:               			    ((unsigned int)HMIDBYTE(multiplier) * LOWBYTE(multiplicand)))
+68:               			<< 16;
+69:               
+70:               		/* cast to smaller type to avoid adding high bits just to discard */
+71:               		product += ((unsigned long)
+72:               			    (unsigned char)
+73:               			    ((unsigned int)LOWBYTE(multiplier) * HIGHBYTE(multiplicand))
+74:               			    +
+75:               			    (unsigned char)
+76:               			    ((unsigned int)LMIDBYTE(multiplier) * HMIDBYTE(multiplicand))
+77:               			    +
+78:               			    (unsigned char)
+79:               			    ((unsigned int)HMIDBYTE(multiplier) * LMIDBYTE(multiplicand))
+80:               			    +
+81:               			    (unsigned char)
+82:               			    ((unsigned int)HIGHBYTE(multiplier) * LOWBYTE(multiplicand)))
+83:               			<< 24;
+84:               
+85:               #elif defined(USE_SHRINK)
+86:               		/* add direct to upper bytes, rather than shift and add all bytes */
+87:               		*((unsigned short long*)(((unsigned char*)&product)+1)) +=
+88:               			((unsigned int)LOWBYTE(multiplier) * LMIDBYTE(multiplicand));
+89:               		*((unsigned short long*)(((unsigned char*)&product)+1)) +=
+90:               			((unsigned int)LMIDBYTE(multiplier) * LOWBYTE(multiplicand));
+91:               
+92:               
+93:               		*((unsigned int*)(((unsigned char*)&product)+2)) +=
+94:               			((unsigned int)LOWBYTE(multiplier) * HMIDBYTE(multiplicand));
+95:               		*((unsigned int*)(((unsigned char*)&product)+2)) +=
+96:               			((unsigned int)LMIDBYTE(multiplier) * LMIDBYTE(multiplicand));
+97:               		*((unsigned int*)(((unsigned char*)&product)+2)) +=
+98:               			((unsigned int)HMIDBYTE(multiplier) * LOWBYTE(multiplicand));
+99:               
+100:              		*(((unsigned char*)&product)+3) +=
+101:              			(unsigned char)
+102:              			((unsigned int)LOWBYTE(multiplier) * HIGHBYTE(multiplicand));
+103:              		*(((unsigned char*)&product)+3) +=
+104:              			(unsigned char)
+105:              			((unsigned int)LMIDBYTE(multiplier) * HMIDBYTE(multiplicand));
+106:              		*(((unsigned char*)&product)+3) +=
+107:              			(unsigned char)
+108:              			((unsigned int)HMIDBYTE(multiplier) * LMIDBYTE(multiplicand));
+109:              		*(((unsigned char*)&product)+3) +=
+110:              			(unsigned char)
+111:              			((unsigned int)HIGHBYTE(multiplier) * LOWBYTE(multiplicand));
+112:              
+113:              #else
+114:              #error No method chosen
+115:              #endif
+116:              	}
+117:              #else
+118:              
+119:              	product = 0;
+120:              	do {
+121:              		if(multiplier & 1)
+122:              			product += multiplicand;
+123:              		multiplicand <<= 1;
+124:              		multiplier >>= 1;
+125:              	} while(multiplier != 0);
+126:              
+127:              #endif
+128:              	return product;
+129:              }
+---- D:\QW\QW-中微\SC8F054_DK\IDE\SCMCU_IDE_V2.00.17_Beta3\data\sources\common\lldiv.c ----------------------------------------------------------------------
+1:                // long unsigned unsigned division
+2:                
+3:                unsigned long int
+4:                #ifdef __PICC__
+5:                #warning TODO: update cgpic and this file to use the other prototype
+6:                __lldiv(unsigned long int divisor, unsigned long int dividend)
+  0488    01DF    CLR	0x5F
+  0489    01E0    CLR	0x60
+  048A    01E1    CLR	0x61
+  048B    01E2    CLR	0x62
+  048C    085A    LD	A,0x5A
+  048D    0459    ORA	0x59
+  048E    0458    ORA	0x58
+  048F    0457    ORA	0x57
+  0490    1903    SZB	0x3,2
+  0491    2CC7    JP	0x4C7
+  0492    01E3    CLR	0x63
+  0493    0AE3    INCR	0x63
+  0494    1BDA    SZB	0x5A,7
+  0495    2C9C    JP	0x49C
+  0496    1003    CLRB	0x3,0
+  0497    0DD7    RLCR	0x57
+  0498    0DD8    RLCR	0x58
+  0499    0DD9    RLCR	0x59
+  049A    0DDA    RLCR	0x5A
+  049B    2C93    JP	0x493
+  049C    1003    CLRB	0x3,0
+  049D    0DDF    RLCR	0x5F
+  049E    0DE0    RLCR	0x60
+  049F    0DE1    RLCR	0x61
+  04A0    0DE2    RLCR	0x62
+  04A1    085A    LD	A,0x5A
+  04A2    025E    SUBA	0x5E
+  04A3    1D03    SNZB	0x3,2
+  04A4    2CAF    JP	0x4AF
+  04A5    0859    LD	A,0x59
+  04A6    025D    SUBA	0x5D
+  04A7    1D03    SNZB	0x3,2
+  04A8    2CAF    JP	0x4AF
+  04A9    0858    LD	A,0x58
+  04AA    025C    SUBA	0x5C
+  04AB    1D03    SNZB	0x3,2
+  04AC    2CAF    JP	0x4AF
+  04AD    0857    LD	A,0x57
+  04AE    025B    SUBA	0x5B
+  04AF    1C03    SNZB	0x3,0
+  04B0    2CC1    JP	0x4C1
+  04B1    0857    LD	A,0x57
+  04B2    02DB    SUBR	0x5B
+  04B3    0858    LD	A,0x58
+  04B4    1C03    SNZB	0x3,0
+  04B5    0F58    SZINCA	0x58
+  04B6    02DC    SUBR	0x5C
+  04B7    0859    LD	A,0x59
+  04B8    1C03    SNZB	0x3,0
+  04B9    0F59    SZINCA	0x59
+  04BA    02DD    SUBR	0x5D
+  04BB    085A    LD	A,0x5A
+  04BC    1C03    SNZB	0x3,0
+  04BD    0F5A    SZINCA	0x5A
+  04BE    02DE    SUBR	0x5E
+  04BF    145F    SETB	0x5F,0
+  04C0    1003    CLRB	0x3,0
+  04C1    0CDA    RRCR	0x5A
+  04C2    0CD9    RRCR	0x59
+  04C3    0CD8    RRCR	0x58
+  04C4    0CD7    RRCR	0x57
+  04C5    0BE3    SZDECR	0x63
+  04C6    2C9C    JP	0x49C
+  04C7    0862    LD	A,0x62
+  04C8    00DA    LD	0x5A,A
+  04C9    0861    LD	A,0x61
+  04CA    00D9    LD	0x59,A
+  04CB    0860    LD	A,0x60
+  04CC    00D8    LD	0x58,A
+  04CD    085F    LD	A,0x5F
+  04CE    00D7    LD	0x57,A
+  04CF    0008    RET
+7:                #else
+8:                __lldiv(unsigned long int dividend, unsigned long int divisor)
+9:                #endif
+10:               {
+11:               	unsigned long int	quotient;
+12:               	unsigned char	counter;
+13:               
+14:               	quotient = 0;
+15:               	if(divisor != 0) {
+16:               		counter = 1;
+17:               		while((divisor & 0x80000000UL) == 0) {
+18:               			divisor <<= 1;
+19:               			counter++;
+20:               		}
+21:               		do {
+22:               			quotient <<= 1;
+23:               			if(divisor <= dividend) {
+24:               				dividend -= divisor;
+25:               				quotient |= 1;
+26:               			}
+27:               			divisor >>= 1;
+28:               		} while(--counter != 0);
+29:               	}
+30:               	return quotient;
+31:               }
+---- D:\QW\QW-中微\SC8F054_DK\IDE\SCMCU_IDE_V2.00.17_Beta3\data\sources\common\lbdiv.c ----------------------------------------------------------------------
+1:                // byte unsigned division
+2:                
+3:                unsigned char
+4:                __lbdiv(unsigned char dividend, unsigned char divisor)
+  067B    00F1    LD	0x71,A
+  067C    01F3    CLR	0x73
+  067D    0870    LD	A,0x70
+  067E    1903    SZB	0x3,2
+  067F    2E94    JP	0x694
+  0680    01F2    CLR	0x72
+  0681    0AF2    INCR	0x72
+  0682    1BF0    SZB	0x70,7
+  0683    2E87    JP	0x687
+  0684    1003    CLRB	0x3,0
+  0685    0DF0    RLCR	0x70
+  0686    2E81    JP	0x681
+  0687    1003    CLRB	0x3,0
+  0688    0DF3    RLCR	0x73
+  0689    0870    LD	A,0x70
+  068A    0271    SUBA	0x71
+  068B    1C03    SNZB	0x3,0
+  068C    2E91    JP	0x691
+  068D    0870    LD	A,0x70
+  068E    02F1    SUBR	0x71
+  068F    1473    SETB	0x73,0
+  0690    1003    CLRB	0x3,0
+  0691    0CF0    RRCR	0x70
+  0692    0BF2    SZDECR	0x72
+  0693    2E87    JP	0x687
+  0694    0873    LD	A,0x73
+  0695    0008    RET
+5:                {
+6:                	unsigned char	quotient;
+7:                	unsigned char	counter;
+8:                
+9:                	quotient = 0;
+10:               	if(divisor != 0) {
+11:               		counter = 1;
+12:               		while((divisor & 0x80) == 0) {
+13:               			divisor <<= 1;
+14:               			counter++;
+15:               		}
+16:               		do {
+17:               			quotient <<= 1;
+18:               			if(divisor <= dividend) {
+19:               				dividend -= divisor;
+20:               				quotient |= 1;
+21:               			}
+22:               			divisor >>= 1;
+23:               		} while(--counter != 0);
+24:               	}
+25:               	return quotient;
+26:               }
+---- stringtab ------------------------------------------------------------------
+---- reset_enter ------------------------------------------------------------------
+  0000    280C    JP	0xC
+  000C    280D    JP	0xD
+---- start_initialization ------------------------------------------------------------------
+  000D    1683    SETB	0x3,5
+  000E    3023    LDIA	0x23
+  000F    00C2    LD	0x42,A
+  0010    3024    LDIA	0x24
+  0011    00C3    LD	0x43,A
+  0012    3025    LDIA	0x25
+  0013    00C4    LD	0x44,A
+  0014    3026    LDIA	0x26
+  0015    00C5    LD	0x45,A
+  0016    3027    LDIA	0x27
+  0017    00C6    LD	0x46,A
+  0018    1383    CLRB	0x3,7
+  0019    304B    LDIA	0x4B
+  001A    00FD    LD	0x7D,A
+  001B    3006    LDIA	0x6
+  001C    00FE    LD	0x7E,A
+  001D    3009    LDIA	0x9
+  001E    00FF    LD	0x7F,A
+  001F    3020    LDIA	0x20
+  0020    0084    LD	0x4,A
+  0021    274D    CALL	0x74D
+  0022    3001    LDIA	0x1
+  0023    00F7    LD	0x77,A
+  0024    3000    LDIA	0x0
+  0025    00F8    LD	0x78,A
+  0026    3000    LDIA	0x0
+  0027    00F9    LD	0x79,A
+  0028    30A0    LDIA	0xA0
+  0029    0084    LD	0x4,A
+  002A    30C2    LDIA	0xC2
+  002B    27A8    CALL	0x7A8
+  002C    3069    LDIA	0x69
+  002D    0084    LD	0x4,A
+  002E    306D    LDIA	0x6D
+  002F    27A8    CALL	0x7A8
+---- interrupt_function_enter ----------------------------------------------------------
+  0004    00FE    LD	0x7E,A
+  0005    0E03    SWAPA	0x3
+  0006    00F4    LD	0x74,A
+  0007    0804    LD	A,0x4
+  0008    00F5    LD	0x75,A
+  0009    080A    LD	A,0xA
+  000A    00F6    LD	0x76,A
+  000B    29CD    JP	0x1CD
+  0739    29E2    JP	0x1E2
+  073A    29E6    JP	0x1E6
+  073B    29F7    JP	0x1F7
+  073C    2A0B    JP	0x20B
+  073D    2A17    JP	0x217
+  073E    2AB2    JP	0x2B2
+  073F    2AB2    JP	0x2B2
+  0740    2AB2    JP	0x2B2
+  0741    2AB2    JP	0x2B2
+  0742    2AB2    JP	0x2B2
+  0743    2AB2    JP	0x2B2
+  0744    2AB2    JP	0x2B2
+  0745    2AB2    JP	0x2B2
+  0746    2A36    JP	0x236
+  0747    2AB2    JP	0x2B2
+  0748    2A26    JP	0x226
+---- common_function ------------------------------------------------------------------
+  0030    0183    CLR	0x3
+  0031    2F9F    JP	0x79F
+  034C    00E6    LD	0x66,A
+  050D    00D6    LD	0x56,A
+  05AA    0000    NOP
+  0609    3401    RET	0x1
+  060A    3400    RET	0x0
+  060B    3400    RET	0x0
+  060C    3400    RET	0x0
+  060D    3400    RET	0x0
+  060E    3400    RET	0x0
+  060F    3400    RET	0x0
+  0610    3400    RET	0x0
+  0611    3400    RET	0x0
+  0612    3400    RET	0x0
+  0613    3400    RET	0x0
+  0614    3400    RET	0x0
+  0615    3400    RET	0x0
+  0616    3400    RET	0x0
+  0617    3400    RET	0x0
+  0618    3400    RET	0x0
+  0619    3400    RET	0x0
+  061A    3400    RET	0x0
+  061B    3400    RET	0x0
+  061C    3400    RET	0x0
+  061D    3400    RET	0x0
+  061E    3401    RET	0x1
+  061F    3420    RET	0x20
+  0620    3400    RET	0x0
+  0621    3400    RET	0x0
+  0622    3400    RET	0x0
+  0623    3400    RET	0x0
+  0624    3400    RET	0x0
+  0625    3400    RET	0x0
+  0626    3400    RET	0x0
+  0627    3400    RET	0x0
+  0628    3400    RET	0x0
+  0629    3400    RET	0x0
+  062A    3400    RET	0x0
+  062B    3400    RET	0x0
+  062C    3400    RET	0x0
+  062D    3401    RET	0x1
+  062E    3400    RET	0x0
+  062F    3400    RET	0x0
+  0630    3401    RET	0x1
+  0631    3400    RET	0x0
+  0632    3400    RET	0x0
+  0633    3400    RET	0x0
+  065C    30EE    LDIA	0xEE
+  0696    00CF    LD	0x4F,A
+  06C8    00D0    LD	0x50,A
+  06DD    00CB    LD	0x4B,A
+  06F2    00D0    LD	0x50,A
+  0705    00D3    LD	0x53,A
+  0706    3054    LDIA	0x54
+  0729    2BCB    JP	0x3CB
+  072A    2BD0    JP	0x3D0
+  072B    2BD6    JP	0x3D6
+  072C    2BDA    JP	0x3DA
+  072D    2BDD    JP	0x3DD
+  072E    2BE2    JP	0x3E2
+  072F    2BE6    JP	0x3E6
+  0730    2BEC    JP	0x3EC
+  0731    2BF0    JP	0x3F0
+  0732    2BF6    JP	0x3F6
+  0733    2BFC    JP	0x3FC
+  0734    2C04    JP	0x404
+  0735    2C0A    JP	0x40A
+  0736    2C0E    JP	0x40E
+  0737    2C17    JP	0x417
+  0738    2C1A    JP	0x41A
+  0749    087E    LD	A,0x7E
+  074A    008A    LD	0xA,A
+  074B    087F    LD	A,0x7F
+  074C    0082    LD	0x2,A
+  074D    2749    CALL	0x749
+  074E    0080    LD	0x0,A
+  074F    0A84    INCR	0x4
+  0750    0804    LD	A,0x4
+  0751    067D    XORA	0x7D
+  0752    1903    SZB	0x3,2
+  0753    3400    RET	0x0
+  0754    0AFF    INCR	0x7F
+  0755    1903    SZB	0x3,2
+  0756    0AFE    INCR	0x7E
+  0757    2F4D    JP	0x74D
+  0758    00CB    LD	0x4B,A
+  077F    00D3    LD	0x53,A
+  0795    00CE    LD	0x4E,A
+  07A8    0064    CLRWDT
+  07A9    0180    CLR	0x0
+  07AA    0A84    INCR	0x4
+  07AB    0604    XORA	0x4
+  07AC    1903    SZB	0x3,2
+  07AD    3400    RET	0x0
+  07AE    0604    XORA	0x4
+  07AF    2FA9    JP	0x7A9
+  07B0    00CD    LD	0x4D,A
+  07B7    00CE    LD	0x4E,A

@@ -1,0 +1,1 @@
+ SC8F054_key.d  SC8F054_key.p1:  D:/QW/QW-项目/QW-247/程序/手环-中微-程序-16通道-2.4G/QW-247_SC8F054_V1.0_16M2T_16Channel/SC8F054_key.c D:/QW/QW-项目/QW-247/程序/手环-中微-程序-16通道-2.4G/QW-247_SC8F054_V1.0_16M2T_16Channel/SC8F054_define.h D:/QW/QW-项目/QW-247/程序/手环-中微-程序-16通道-2.4G/QW-247_SC8F054_V1.0_16M2T_16Channel/SC8F054_var.h
