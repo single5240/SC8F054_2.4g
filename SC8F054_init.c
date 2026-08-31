@@ -94,6 +94,7 @@ void Sleep_Mode(void)
 		led_control.red_duty   	  			   = 0;
 		led_control.green_duty 	  			   = 0;
 		led_control.blue_duty  	  			   = 0;
+		key_control.key_rec_flag_pb            = 0;
 		TRISB 	   = 0B00000000; // 关闭所有输出，RB5口做唤醒输入
 		RF_CE_Low(); // 拉低CE
 		RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0xe0);
@@ -137,19 +138,19 @@ void Sleep_Mode(void)
 			RBIE       = 0; // 允许PORTB电平变化中断
 			RBIF       = 0; // 清中断标志 
 		}
-		PORTB 	   = 0B00111110; // 
+		PORTB 	   = 0B00001110; //
+		TRISB      = 0B00000000;
+		RF_Rx_Mode();
 		OPTION_REG = 0x00;
 		OSCCON     = 0x70;	// 16MHZ,内部振荡器用作系统时钟,CONFIG关闭WDT时必需软件打开WDT
 		Init_System();
-		RF_Rx_Mode();             // XL2400T休眠前仅掉电，唤醒后恢复接收状态
 		sleep_control.sleep_flag = 0;  
 	}
 	
 	if(key_control.key_hx_flag_pb == 1)
 	{
-		led_control.led_color      = LED_RED;      // 颜色值复位
-		led_control.led_mode       = LED_MODE_ON;  // 模式复位
-		led_control.last_quick_led = LED_RED;
+		led_control.led_color      = 1;  // 颜色值复位
+		led_control.led_mode       = 2;  // 模式复位
 		key_control.key_hx_flag_pb = 0;
 	}
 }

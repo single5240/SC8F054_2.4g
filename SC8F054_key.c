@@ -69,8 +69,8 @@ void Key_Event(void)
 		key_control.key_pb = 0;                    // 清除按键事件标志位
         if(!soft_recieve_control.recieve_bit)      // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
 		{
-			led_control.led_color            = LED_OFF;
-			led_control.led_mode             = LED_MODE_OFF;
+			led_control.led_color            = 0;
+			led_control.led_mode             = 0;
 			sleep_control.sleep_count        = 3;  // 睡眠计数清零
 			sleep_control.sleep_flag         = 1;  // 置位休眠标志，进入休眠
 			sleep_control.recieve_sleep_flag = 0;
