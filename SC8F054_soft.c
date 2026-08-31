@@ -67,6 +67,7 @@ void Soft_Decode(void)
 	{
 		sleep_control.sleep_count = 13;
 		sleep_control.recieve_sleep_flag = 1;
+		soft_recieve_control.randnum_flag = 0;
 		if(soft_data[0] == led_control.add_data)
 		{
 			led_control.led_mode       = (soft_data[1] >> 4) & 0x0f;
@@ -112,6 +113,7 @@ void Soft_Decode(void)
 	soft_recieve_control.temp2 = soft_data[2];
 	soft_recieve_control.temp3 = soft_data[3];
 	soft_recieve_control.last_frame_valid = 1;
+	soft_recieve_control.randnum_flag = 0;
 	sleep_control.sleep_count = 13;
 	sleep_control.recieve_sleep_flag = 1;
 	soft_recieve_control.function_data = command;
@@ -222,18 +224,21 @@ void Soft_Decode(void)
 			}
 			break;
 
-		case 0xF0:                                  // 雪花按逻辑通道固定分组
-			value = ((led_control.add_data - 1) & 0x07) + 1;
-			if(mode == value)
+		case 0xF0:                                  // 雪花轮闪
+			if(mode == soft_recieve_control.rand_num)
 			{
 				if(!soft_recieve_control.Snowflake_flag)
 				{
+					soft_recieve_control.randnum_flag = 1;
 					soft_recieve_control.Snowflake_flag = 1;
 					soft_recieve_control.Snowflake_dit_off = 0;
 					led_control.led_color = color;
 					led_control.led_mode = LED_MODE_ON;
 				}
-				else if(++soft_recieve_control.Snowflake_dit_off > 2)
+			}
+			if(soft_recieve_control.Snowflake_flag)
+			{
+				if(++soft_recieve_control.Snowflake_dit_off > 2)
 				{
 					soft_recieve_control.Snowflake_flag = 0;
 					soft_recieve_control.Snowflake_dit_off = 0;

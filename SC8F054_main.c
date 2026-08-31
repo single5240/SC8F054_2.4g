@@ -3,20 +3,44 @@
 #include "SC8F054_var.h"
 
 unsigned char soft_data[34] = {0}; // 接收数据数组
+static unsigned char rand_seed = 0xA5;
 
 void main(void)
 {	
 	Init_System();
 	XL2400T_Init();
     RF_Rx_Mode();
+	Rand_num();
 
 	while(1)
 	{
 		RF_RX_Data(soft_data);
 		Led_Color_Prg();
+		Rand_num();
 		//Key_Scan();
 		//Key_Event();
 		Sleep_Mode();
+	}
+}
+
+/**
+ * 函数功能：生成1~8的雪花闪随机数
+ * 功能说明：使用1字节LFSR，避免引入stdlib随机数库占用过多Flash。
+ */
+void Rand_num(void)
+{
+	if((soft_recieve_control.rand_flag == 0) && (soft_recieve_control.randnum_flag == 1))
+	{
+		if(rand_seed & 0x01)
+		{
+			rand_seed = (rand_seed >> 1) ^ 0xB8;
+		}
+		else
+		{
+			rand_seed >>= 1;
+		}
+		soft_recieve_control.rand_num = (rand_seed & 0x07) + 1;
+		soft_recieve_control.rand_flag = 1;
 	}
 }
 
