@@ -1,0 +1,28 @@
+# ===== SCMCU IDE / XC8 编译产物 =====
+output/
+
+# 根目录编译/链接中间文件
+*.lst
+*.lpp
+*.ram
+
+# 常见编译/烧录产物
+*.hex
+*.bin
+*.obj
+*.map
+*.d
+*.p1
+*.pre
+*.as
+*.cmf
+*.hxl
+*.rlf
+*.sdb
+*.sym
+*.err
+*.cof
+*.elf
+
+# SCMCU 工程仿真/缓存二进制文件
+*.scx
