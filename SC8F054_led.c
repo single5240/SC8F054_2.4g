@@ -14,18 +14,18 @@ void map_0_255_to_1000_0(U8 red_duty, U8 green_duty, U8 blue_duty)
 	duty_10bit   = (unsigned int)((unsigned long)red_duty * 1023 / 255);
 	PWMD23H  	 = 0x00; 
 	PWMD23H 	|= ((duty_10bit >> 8) & 0x03); // 红色PWMD2占空比高2位
-	PWMD2L   	 = red_duty;  	               // 红色PWMD2占空比低8位
+	PWMD2L   	 = (U8)duty_10bit;              // 红色PWMD2占空比低8位
 	
 	// - - PWMD1:9 PWMD1:8 - - PWMD0:9 PWMD0:8
 	duty_10bit   = (unsigned int)((unsigned long)green_duty * 1023 / 255);
 	PWMD01H      = 0x00;	  // 绿色PWMD1占空比高2位
 	PWMD01H     |= ((duty_10bit >> 8) & 0x03) << 4; 	  // 绿色PWMD1占空比高2位
-	PWMD1L       = green_duty;  	  // 绿色PWMD1占空比低8位
+	PWMD1L       = (U8)duty_10bit;  // 绿色PWMD1占空比低8位
 	
 	duty_10bit   = (unsigned int)((unsigned long)blue_duty * 1023 / 255);
 	PWMTH 	     = 0x0F; 	  // 蓝色PWMD4占空比高2位
 	PWMTH 	    |= ((duty_10bit >> 8) & 0x03) << 4; // 蓝色PWMD4占空比高2位
-	PWMD4L       = blue_duty;  	  // 蓝色PWMD4占空比低8位
+	PWMD4L       = (U8)duty_10bit;  // 蓝色PWMD4占空比低8位
 }
 
 
@@ -151,6 +151,13 @@ void Led_Color_Prg(void)
 	   	led_control.set_red_duty   = led_control.red_duty;
 		led_control.set_green_duty = led_control.green_duty;
 		led_control.set_blue_duty  = led_control.blue_duty;
+
+		if((led_control.led_mode == LED_MODE_FADING) && (led_control.breath_flag == 1))
+		{
+			led_control.red_duty   = 0;
+			led_control.green_duty = 0;
+			led_control.blue_duty  = 0;
+		}
 	}
 	
 	map_0_255_to_1000_0(led_control.red_duty, led_control.green_duty, led_control.blue_duty);

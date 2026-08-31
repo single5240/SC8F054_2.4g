@@ -1,10 +1,8 @@
 #include <sc.h>	
-#include <stdlib.h>	
 #include "SC8F054_define.h"
 #include "SC8F054_var.h"
 
 unsigned char soft_data[34] = {0}; // 接收数据数组
-unsigned char key_data 		= 0;
 
 void main(void)
 {	
@@ -18,23 +16,8 @@ void main(void)
 		Led_Color_Prg();
 		//Key_Scan();
 		//Key_Event();
-		Rand_num();
 		Sleep_Mode();
 	}
-}
-
-/**
- * 函数功能： 随机数生成处理函数
- * 功能说明： 该函数用于在满足特定条件时生成1~8范围内的有效随机数，存入控制结构体中，
- *            采用「先初始化随机数种子，再生成随机数，最后做范围校验」的流程，保证随机数的有效性和唯一性。
- */
-void Rand_num(void)
-{
-	if((soft_recieve_control.rand_flag == 0) && (soft_recieve_control.randnum_flag == 1))
-    {	
-		soft_recieve_control.rand_num  = (rand() % 8) + 1;
-		soft_recieve_control.rand_flag = 1;
-    }
 }
 
 /***********************************************
@@ -61,7 +44,7 @@ void interrupt INT_Isr()
 			}
 
 			led_control.count_10ms++;
-			if(led_control.count_10ms >= 9)     // 10ms
+			if(led_control.count_10ms >= 10)    // 10ms
 			{
 				led_control.count_10ms = 0;
 
@@ -116,15 +99,15 @@ void interrupt INT_Isr()
 						break;  
 					} 
 					case LED_MODE_QUICK:           // 快闪 
-					{	
+					{
 						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 32)
+						if(led_control.led_mode_count >= 28)
 						{
-							led_control.led_mode_count = 0; // 大约0.25s闪烁一次	
+							led_control.led_mode_count = 0;
 						}
-						
-						if(led_control.led_mode_count < 16)
-			  		  	{
+
+						if(led_control.led_mode_count < 14)
+						{
 							PWMCON0 			   = 0x16;
 							led_control.red_duty   = led_control.set_red_duty;
 							led_control.green_duty = led_control.set_green_duty;
@@ -138,17 +121,40 @@ void interrupt INT_Isr()
 							led_control.blue_duty  = 0;			
 						} 
 						break;  
-					}  
+					}
+					case LED_MODE_QUICK1:          // 间隔快闪
+					{
+						led_control.led_mode_count++;
+						if(led_control.led_mode_count >= 32)
+						{
+							led_control.led_mode_count = 0;
+						}
+						if(led_control.led_mode_count < 16)
+						{
+							PWMCON0 = 0x16;
+							led_control.red_duty   = led_control.set_red_duty;
+							led_control.green_duty = led_control.set_green_duty;
+							led_control.blue_duty  = led_control.set_blue_duty;
+						}
+						else
+						{
+							PWMCON0 = 0x00;
+							led_control.red_duty   = 0;
+							led_control.green_duty = 0;
+							led_control.blue_duty  = 0;
+						}
+						break;
+					}
 					case LED_MODE_STROBE:       // 频闪
 					{
 						PWMCON0 = 0x16;
 						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 112)
+						if(led_control.led_mode_count >= 14)
 						{
-							led_control.led_mode_count = 0; // 大约0.125s闪烁一次	
+							led_control.led_mode_count = 0;
 						}
 						
-						if(led_control.led_mode_count / 7 % 2 == 0)
+						if(led_control.led_mode_count < 7)
 			          	{
 							led_control.red_duty   = led_control.set_red_duty;
 							led_control.green_duty = led_control.set_green_duty;
@@ -166,9 +172,8 @@ void interrupt INT_Isr()
 					}                         
 					case LED_MODE_COLOR_CHANGE: 	  // 15色轮播
 					{
-						PWMCON0 = 0x16;
 						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 50)
+						if(led_control.led_mode_count >= 20)
 						{
 							led_control.led_mode_count = 0;
 							led_control.led_color++;
@@ -176,7 +181,21 @@ void interrupt INT_Isr()
 							{
 								led_control.led_color = 1;
 							}
-						} 
+						}
+						if(led_control.led_mode_count < 10)
+						{
+							PWMCON0 = 0x16;
+							led_control.red_duty   = led_control.set_red_duty;
+							led_control.green_duty = led_control.set_green_duty;
+							led_control.blue_duty  = led_control.set_blue_duty;
+						}
+						else
+						{
+							PWMCON0 = 0x00;
+							led_control.red_duty   = 0;
+							led_control.green_duty = 0;
+							led_control.blue_duty  = 0;
+						}
 						break;
 					}                   
 					case LED_MODE_FADING:       	 // 呼吸灯

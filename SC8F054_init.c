@@ -88,6 +88,8 @@ void Sleep_Mode(void)
 		soft_recieve_control.start_flag        = 0;
 		soft_recieve_control.data_length_count = 0; // 接收字节计数清零
 		soft_recieve_control.data_bit_count    = 0; // 清除数据计数
+		soft_recieve_control.flow_active       = 0;
+		soft_recieve_control.last_frame_valid  = 0;
 		sleep_control.sleep_count 			   = 0;
 		led_control.red_duty   	  			   = 0;
 		led_control.green_duty 	  			   = 0;
@@ -139,13 +141,15 @@ void Sleep_Mode(void)
 		OPTION_REG = 0x00;
 		OSCCON     = 0x70;	// 16MHZ,内部振荡器用作系统时钟,CONFIG关闭WDT时必需软件打开WDT
 		Init_System();
+		RF_Rx_Mode();             // XL2400T休眠前仅掉电，唤醒后恢复接收状态
 		sleep_control.sleep_flag = 0;  
 	}
 	
 	if(key_control.key_hx_flag_pb == 1)
 	{
-		led_control.led_color      = 1;  // 颜色值复位
-		led_control.led_mode       = 2;  // 模式复位
+		led_control.led_color      = LED_RED;      // 颜色值复位
+		led_control.led_mode       = LED_MODE_ON;  // 模式复位
+		led_control.last_quick_led = LED_RED;
 		key_control.key_hx_flag_pb = 0;
 	}
 }

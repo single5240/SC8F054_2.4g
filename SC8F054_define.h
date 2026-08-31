@@ -8,7 +8,7 @@
 #define SCK     RB4
 #define DATA    RB5
 
-#define ADD_DAT               1    // 通道号，用来烧程序的时候标记1-16通道号
+#define ADD_DAT               14   // 默认逻辑通道，与参考工程保持一致
 
 #define SECOND_US_MIN         15   // 捕获遥控器发出的协议头的高电平波形最小范围
 #define SECOND_US_MAX         25   // 捕获遥控器发出的协议头的高电平波形最大范围
@@ -17,10 +17,10 @@
 #define NUM1_US_MIN		      8    // 捕获遥控器发出的数据位是1的高电平波形最小范围
 #define NUM1_US_MAX		      12   // 捕获遥控器发出的数据位是1的高电平波形最大范围
 
-#define	KEY_UP_TIME           50   // 按键抬起的时间
+#define	KEY_UP_TIME           30   // 按键稳定抬起时间
 #define	KEY_UP_TIMEOUT        255  // 按键抬起超时时间
 
-#define	KEY_SHORT_DOWN_TIME   70   // 按键短按时间
+#define	KEY_SHORT_DOWN_TIME   30   // 按键稳定按下时间
 #define	KEY_LONG_DOWN_TIME    1000 // 按键长按时间
 #define	KEY_DOWN_TIMEOUT      3000 // 按键按下超时
 
@@ -46,6 +46,7 @@
 #define LED_MODE_SLOW		  3    // 慢闪
 #define LED_MODE_QUICK        4    // 快闪
 #define LED_MODE_STROBE       5    // 频闪
+#define LED_MODE_QUICK1       6    // 间隔快闪
 #define LED_MODE_FADING       14   // 呼吸灯
 #define LED_MODE_COLOR_CHANGE 16   // 15色轮播
 

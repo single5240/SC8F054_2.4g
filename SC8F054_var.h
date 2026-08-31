@@ -72,10 +72,11 @@ typedef struct
 	unsigned char temp1;    		  // 记录上一次的数组第1个的数据，防止帧重复
 	unsigned char temp2;			  // 记录上一次的数组第2个的数据，防止帧重复
 	unsigned char temp3;			  // 记录上一次的数组第3个的数据，防止帧重复
-	unsigned char rand_num;           // 获取随机数
 	unsigned char Channel;			  // 获取通道1-8的数据
 	unsigned char dmx_count;          // dmx接收次数
 	unsigned char Snowflake_dit_off;  // 随机计数
+	unsigned      flow_active     : 1; // 0x40流水灯效已启动，后续帧不复位相位
+	unsigned      last_frame_valid: 1; // 上一普通控制帧有效
 } SOFT_RECIEVE_CONTROL;
 
 // 放在这里是变成全局变量，调用了ny8_lib.h文件就可以用，这样做，空间会变大一些
@@ -93,7 +94,6 @@ void Led_Color_Prg(void);
 void Sleep_Mode(void);
 void Soft_Decode(void);
 void Soft_Count(void);
-void Rand_num(void);
 void map_0_255_to_1000_0(U8 red_duty, U8 green_duty, U8 blue_duty);
 void Uart_Send_Receive(void);
 void UART_Send_Byte(unsigned char dat);

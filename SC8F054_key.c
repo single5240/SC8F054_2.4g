@@ -69,10 +69,10 @@ void Key_Event(void)
 		key_control.key_pb = 0;                    // 清除按键事件标志位
         if(!soft_recieve_control.recieve_bit)      // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
 		{
-			led_control.led_color            = 0;  // 灯光熄灭
-			led_control.led_mode             = 0;  // 进入熄灭模式		
+			led_control.led_color            = LED_OFF;
+			led_control.led_mode             = LED_MODE_OFF;
 			sleep_control.sleep_count        = 3;  // 睡眠计数清零
-			sleep_control.sleep_flag         = 1;  // 休眠标志位置0，进入休眠
+			sleep_control.sleep_flag         = 1;  // 置位休眠标志，进入休眠
 			sleep_control.recieve_sleep_flag = 0;
         }
     }
@@ -85,18 +85,27 @@ void Key_Event(void)
 			sleep_control.recieve_sleep_flag  = 1;  // 置1，不进入休眠
 			soft_recieve_control.randnum_flag = 0;  // 禁止获取随机数
  
-			if(led_control.led_mode == 16)
+			if(led_control.led_mode == LED_MODE_COLOR_CHANGE)
             {
-				led_control.led_color = 0;          // 重置LED颜色
-                led_control.led_mode  = 2;          // 切换到模式2
-            }				
-			else 
+				led_control.led_color = LED_OFF;
+                led_control.led_mode  = LED_MODE_OFF;
+            }
+			else if(led_control.led_color == LED_OFF)
             {
-				led_control.led_color++;            // 切换颜色
-                if(led_control.led_color >= 16)     // 当切换颜色到16时
-                {
-                	led_control.led_mode = 16;      // 进入模式16
-                }
+				led_control.led_color = LED_RED;
+                led_control.led_mode  = LED_MODE_ON;
+            }
+			else if(led_control.led_color < LED_TURQUOISE)
+            {
+				led_control.led_color++;
+                led_control.led_mode = LED_MODE_ON;
+            }
+			else
+            {
+				led_control.led_color      = LED_RED;
+                led_control.led_mode       = LED_MODE_COLOR_CHANGE;
+                led_control.led_mode_count = 0;
+                led_control.color_p        = 0;
             }
 			
 										   

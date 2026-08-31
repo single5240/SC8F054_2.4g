@@ -276,7 +276,6 @@ unsigned char RF_TX_Data(unsigned char* tx_buff)
 	}
 }
 
-unsigned char key_count = 0;
 /*************************************************
  * 接收数据函数
  * 参数：接收到的数据 存放的地址
@@ -284,6 +283,8 @@ unsigned char key_count = 0;
 **************************************************/
 unsigned char RF_RX_Data(unsigned char* rx_buff)
 {
+	unsigned char received = 0;
+
 	TRISB  = 0B00000000;
 	if(key_control.key_rec_flag_pb == 0)
 	{
@@ -291,15 +292,23 @@ unsigned char RF_RX_Data(unsigned char* rx_buff)
 		{
 			RF_CE_Low(); // 拉低CE
 			soft_recieve_control.data_length_count = RF_SPI_Read_Reg(R_RX_PL_WID);
-			CSN = 0;
-			RF_SPI_Write_Byte(R_RX_PLOAD);
-			rx_buff[0] = RF_SPI_Read_Byte();
-			rx_buff[1] = RF_SPI_Read_Byte();
-			rx_buff[2] = RF_SPI_Read_Byte();
-			rx_buff[3] = RF_SPI_Read_Byte();
-			rx_buff[4] = RF_SPI_Read_Byte();
-			CSN = 1; 
-			Soft_Decode(); 				  // 接受码处理函数
+			if(soft_recieve_control.data_length_count == 5)
+			{
+				CSN = 0;
+				RF_SPI_Write_Byte(R_RX_PLOAD);
+				rx_buff[0] = RF_SPI_Read_Byte();
+				rx_buff[1] = RF_SPI_Read_Byte();
+				rx_buff[2] = RF_SPI_Read_Byte();
+				rx_buff[3] = RF_SPI_Read_Byte();
+				rx_buff[4] = RF_SPI_Read_Byte();
+				CSN = 1;
+				Soft_Decode(); 				  // 接收码处理函数
+				received = 1;
+			}
+			else
+			{
+				soft_recieve_control.data_length_count = 0;
+			}
 			RF_Refresh_State();               // 清空FIFO 清除中断标记位
 			RF_CE_High();
 		}
@@ -311,12 +320,12 @@ unsigned char RF_RX_Data(unsigned char* rx_buff)
 	Key_Scan();
 	Key_Event();
 	Delay_3us();
+	return received;
 }
 
 
 void XL2400T_Init(void)
 {
-	unsigned char dat = 0;
 	Delay_ms(150);
 
 	RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0x02);
