@@ -95,20 +95,28 @@ void Sleep_Mode(void);
 void Soft_Decode(void);
 void Soft_Count(void);
 void map_0_255_to_1000_0(U8 red_duty, U8 green_duty, U8 blue_duty);
+#if FEATURE_SOFT_UART_ENABLE
 void Uart_Send_Receive(void);
 void UART_Send_Byte(unsigned char dat);
+#endif
 void Delay_1ms(void);
 void Delay_ms(unsigned char x);
 void Delay_us(unsigned char x);
 void Delay_3us(void);
+#if FEATURE_RF_TX_ENABLE
 void RF_Tx_Mode(void);
+#endif
 void RF_Rx_Mode(void);
 void XL2400T_Init(void);
+#if FEATURE_RF_TX_ENABLE
 unsigned char RF_TX_Data(unsigned char* tx_buff);
+#endif
 unsigned char RF_RX_Data(unsigned char* rx_buff);
 void RF_CE_High(void);
 void RF_CE_Low(void);
+#if FEATURE_RF_RESET_ENABLE
 void RF_Reset(void);
+#endif
 void RF_SPI_Write_Reg(unsigned char RF_Reg, unsigned char W_Data);
 
 

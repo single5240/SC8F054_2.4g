@@ -1,4 +1,5 @@
 #include "SC8F054_define.h"
+#if FEATURE_SOFT_UART_ENABLE
 #include "SC8F054_var.h"
 #include <sc.h>
 
@@ -126,6 +127,7 @@ void Uart_Send_Receive(void)
     }
     
 }
+#endif
 
 
 

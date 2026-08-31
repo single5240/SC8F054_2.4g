@@ -8,6 +8,11 @@
 #define SCK     RB4
 #define DATA    RB5
 
+/* 当前产品为纯接收、无调试串口版本，未使用功能默认不参与编译。 */
+#define FEATURE_RF_RESET_ENABLE  0
+#define FEATURE_RF_TX_ENABLE     0
+#define FEATURE_SOFT_UART_ENABLE 0
+
 #define ADD_DAT               14   // 默认逻辑通道，与参考工程保持一致
 
 #define SECOND_US_MIN         15   // 捕获遥控器发出的协议头的高电平波形最小范围

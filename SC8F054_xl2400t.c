@@ -180,7 +180,8 @@ void RF_Set_Address(unsigned char *AddrBuff)
 
 /**********************
  * 基带复位
-**********************/
+ **********************/
+#if FEATURE_RF_RESET_ENABLE
 void RF_Reset(void)
 {
    RF_SPI_Write_Reg(W_REGISTER + CFG_TOP,0xEA);
@@ -188,6 +189,7 @@ void RF_Reset(void)
    RF_SPI_Write_Reg(W_REGISTER + CFG_TOP,0xEE);
    Delay_ms(1);
 }
+#endif
 
 /***************************************
  * 配置发射功率
@@ -202,7 +204,8 @@ void RF_Set_Power(unsigned char Power)
 
 /*************************
  * 配置RF为发送模式
-*************************/
+ *************************/
+#if FEATURE_RF_TX_ENABLE
 void RF_Tx_Mode(void)
 {
    unsigned char Mode_Buff[3] = {0};
@@ -214,6 +217,7 @@ void RF_Tx_Mode(void)
    Delay_ms(10);
    RF_Set_Chn(76);
 }
+#endif
 
 /************************
  * 配置RF为接收模式
@@ -232,7 +236,8 @@ void RF_Rx_Mode(void)
    RF_Set_Chn(76-1);
 }
 
-unsigned char color_t = 0;
+#if FEATURE_RF_TX_ENABLE
+static unsigned char color_t = 0;
 unsigned char RF_TX_Data(unsigned char* tx_buff)
 {
 	unsigned char Temp = 0;
@@ -248,20 +253,24 @@ unsigned char RF_TX_Data(unsigned char* tx_buff)
 	tx_buff[3] = (0x20);                    
 	tx_buff[4] = ((tx_buff[0] + tx_buff[1] + tx_buff[2] + tx_buff[3]) & 0x0ff);                
 	RF_Write_Buff(W_TX_PLOAD, tx_buff, 5); // 填写发送内容
-	
+
+#if FEATURE_SOFT_UART_ENABLE
 	UART_Send_Byte(tx_buff[0]); 
 	UART_Send_Byte(tx_buff[1]); 
 	UART_Send_Byte(tx_buff[2]); 
 	UART_Send_Byte(tx_buff[3]); 
 	UART_Send_Byte(tx_buff[4]); 
-	
+#endif
+
 	RF_CE_High(); // 拉高CE
 	Delay_1ms();
 	RF_CE_Low();  // 拉低CE
 	Delay_1ms();
 	
 	Temp = RF_SPI_Read_Reg(RF_STATUS);
+#if FEATURE_SOFT_UART_ENABLE
 	UART_Send_Byte(Temp); 
+#endif
 
 	// 获取状态寄存器的状态
 	if(RF_SPI_Read_Reg(RF_STATUS) & TX_DS) // 触发发送中断
@@ -275,6 +284,7 @@ unsigned char RF_TX_Data(unsigned char* tx_buff)
 		return 0;	
 	}
 }
+#endif
 
 /*************************************************
  * 接收数据函数

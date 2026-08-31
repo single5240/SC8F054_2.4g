@@ -4,25 +4,32 @@
 
 
 
-/**
- * 函数名称：
- */	
 void map_0_255_to_1000_0(U8 red_duty, U8 green_duty, U8 blue_duty)
 {
 	unsigned int duty_10bit = 0;
 	
-	duty_10bit   = (unsigned int)((unsigned long)red_duty * 1023 / 255);
+	/* 1023 = 4 * 255 + 3，分段补偿与 duty * 1023 / 255 完全等价。 */
+	duty_10bit = (unsigned int)red_duty << 2;
+	if(red_duty >= 85)  duty_10bit++;
+	if(red_duty >= 170) duty_10bit++;
+	if(red_duty == 255) duty_10bit++;
 	PWMD23H  	 = 0x00; 
 	PWMD23H 	|= ((duty_10bit >> 8) & 0x03); // 红色PWMD2占空比高2位
 	PWMD2L   	 = (U8)duty_10bit;              // 红色PWMD2占空比低8位
 	
 	// - - PWMD1:9 PWMD1:8 - - PWMD0:9 PWMD0:8
-	duty_10bit   = (unsigned int)((unsigned long)green_duty * 1023 / 255);
+	duty_10bit = (unsigned int)green_duty << 2;
+	if(green_duty >= 85)  duty_10bit++;
+	if(green_duty >= 170) duty_10bit++;
+	if(green_duty == 255) duty_10bit++;
 	PWMD01H      = 0x00;	  // 绿色PWMD1占空比高2位
 	PWMD01H     |= ((duty_10bit >> 8) & 0x03) << 4; 	  // 绿色PWMD1占空比高2位
 	PWMD1L       = (U8)duty_10bit;  // 绿色PWMD1占空比低8位
 	
-	duty_10bit   = (unsigned int)((unsigned long)blue_duty * 1023 / 255);
+	duty_10bit = (unsigned int)blue_duty << 2;
+	if(blue_duty >= 85)  duty_10bit++;
+	if(blue_duty >= 170) duty_10bit++;
+	if(blue_duty == 255) duty_10bit++;
 	PWMTH 	     = 0x0F; 	  // 蓝色PWMD4占空比高2位
 	PWMTH 	    |= ((duty_10bit >> 8) & 0x03) << 4; // 蓝色PWMD4占空比高2位
 	PWMD4L       = (U8)duty_10bit;  // 蓝色PWMD4占空比低8位
