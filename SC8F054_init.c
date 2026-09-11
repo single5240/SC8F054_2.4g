@@ -5,8 +5,7 @@
 
 
 KEY_CONTROL 		 key_control 		  = {0,0,0,0,0,0,0,0,0};
-LED_CONTROL 		 led_control 		  = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,ADD_DAT};
-SOFT_RECIEVE_CONTROL soft_recieve_control = {0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0};
+LED_CONTROL 		 led_control 		  = {0};
 SLEEP_CONTROL        sleep_control        = {1,0,0};
 
 void Init_System(void)
@@ -69,7 +68,7 @@ void Sleep_Mode(void)
 {
 	if((sleep_control.sleep_count >= 2) && (sleep_control.sleep_count <= 8)) // 看门狗唤醒后200ms内，无接受数据，进入休眠
 	{
-		if((soft_data[0] == 0) || (sleep_control.recieve_sleep_flag == 0))   // 加入recieve_sleep_flag标志位是因为能保证进入休眠，soft_data[0]可能不为0
+		if(sleep_control.recieve_sleep_flag == 0)
 		{																			
 			sleep_control.sleep_flag  = 1;                                   // 置位休眠标志为1
         	sleep_control.sleep_count = 0;
@@ -80,16 +79,10 @@ void Sleep_Mode(void)
 	{
         sleep_control.sleep_count = 0;
 		sleep_control.sleep_flag  = 1;                                       // 置位休眠标志为1
-		soft_recieve_control.recieve_bit = 0;                                // 解锁按键
 	}
 	if(sleep_control.sleep_flag == 1)
 	{
 		sleep_control.recieve_sleep_flag       = 0;
-		soft_recieve_control.start_flag        = 0;
-		soft_recieve_control.data_length_count = 0; // 接收字节计数清零
-		soft_recieve_control.data_bit_count    = 0; // 清除数据计数
-		soft_recieve_control.flow_active       = 0;
-		soft_recieve_control.last_frame_valid  = 0;
 		sleep_control.sleep_count 			   = 0;
 		led_control.red_duty   	  			   = 0;
 		led_control.green_duty 	  			   = 0;

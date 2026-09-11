@@ -3,10 +3,10 @@
 #include "xl2400t.h"
 #include <sc.h>
 
-unsigned char RF_Test_Adrress[5]={0x23, 0x24, 0x25, 0x26, 0x27}; // RFµØÖ·
+unsigned char RF_Test_Adrress[5]={0x23, 0x24, 0x25, 0x26, 0x27}; // RFï¿½ï¿½Ö·
 
 /*************************************************
- * SPIÐ´ÈëÒ»¸ö×Ö½ÚµÄÊý¾Ý
+ * SPIÐ´ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½
 **************************************************/
 static void RF_SPI_Write_Byte(unsigned char buff)
 {
@@ -34,8 +34,8 @@ static void RF_SPI_Write_Byte(unsigned char buff)
 }
 
 /************************************************
- * SPI¶ÁÈ¡Ò»¸ö×Ö½ÚµÄÊý¾Ý
- * ·µ»ØÖµ: ¶ÁÈ¡µ½µÄÊý¾Ý
+ * SPIï¿½ï¿½È¡Ò»ï¿½ï¿½ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½Öµ: ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 *************************************************/
 static unsigned char RF_SPI_Read_Byte(void)
 {
@@ -58,38 +58,38 @@ static unsigned char RF_SPI_Read_Byte(void)
 }
 
 /********************************************************************
- * ÏòXL2400TµÄ¼Ä´æÆ÷Ð´ÈëÒ»¸ö×Ö½ÚµÄÊý¾Ý
- * ²ÎÊý£ºRF_Reg Ð´Ö¸Áî|¼Ä´æÆ÷µØÖ·
- * ²ÎÊý£ºW_Data Ð´ÈëµÄÊý¾Ý
+ * ï¿½ï¿½XL2400Tï¿½Ä¼Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½RF_Reg Ð´Ö¸ï¿½ï¿½|ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½W_Data Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 *********************************************************************/
 void RF_SPI_Write_Reg(unsigned char RF_Reg, unsigned char W_Data)
 {
 	CSN = 0;
-	RF_SPI_Write_Byte(RF_Reg); // Ð´ÈëµØÖ·
-	RF_SPI_Write_Byte(W_Data); // Ð´ÈëÊý¾Ý
+	RF_SPI_Write_Byte(RF_Reg); // Ð´ï¿½ï¿½ï¿½Ö·
+	RF_SPI_Write_Byte(W_Data); // Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	CSN = 1;
 }
 
 /*******************************************************
- * ´ÓXL2400T¼Ä´æÆ÷¶ÁÈ¡Ò»¸ö×Ö½ÚµÄÊý¾Ý
- * ²ÎÊý: ¶ÁÖ¸Áî|¼Ä´æÆ÷µØÖ·
- * ·µ»ØÖµ£º¶ÁÈ¡µ½µÄÊý¾Ý
+ * ï¿½ï¿½XL2400Tï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½È¡Ò»ï¿½ï¿½ï¿½Ö½Úµï¿½ï¿½ï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½Ö¸ï¿½ï¿½|ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+ * ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 ********************************************************/
 unsigned char RF_SPI_Read_Reg(unsigned char RF_Reg)
 {
 	unsigned char rTemp = 0;
 	CSN = 0;
-	RF_SPI_Write_Byte(RF_Reg);  // Ð´ÈëµØÖ·+¶ÁÈ¡Ö¸Áî
-	rTemp = RF_SPI_Read_Byte(); // ¶ÁÈ¡Êý¾Ý
+	RF_SPI_Write_Byte(RF_Reg);  // Ð´ï¿½ï¿½ï¿½Ö·+ï¿½ï¿½È¡Ö¸ï¿½ï¿½
+	rTemp = RF_SPI_Read_Byte(); // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
 	CSN = 1;
 	return rTemp;
 }
 
 /*****************************************
- * ÏòXL2400TµÄ¼Ä´æÆ÷Ð´Èë¶à¸öÊý¾Ý
- * ²ÎÊý: RFAdress Ð´È¡Ö¸Áî|¼Ä´æÆ÷µØÖ·
- * ²ÎÊý£º*pBuff   ÐèÒªÐ´ÈëÊý¾ÝµÄµØÖ·
- * ²ÎÊý£ºLen      ÐèÒªÐ´ÈëµÄ³¤¶È
+ * ï¿½ï¿½XL2400Tï¿½Ä¼Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½: RFAdress Ð´È¡Ö¸ï¿½ï¿½|ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½*pBuff   ï¿½ï¿½ÒªÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄµï¿½Ö·
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Len      ï¿½ï¿½ÒªÐ´ï¿½ï¿½Ä³ï¿½ï¿½ï¿½
 ******************************************/
 void RF_Write_Buff(unsigned char RF_Reg, unsigned char *pBuff, unsigned char Len)
 {
@@ -107,10 +107,10 @@ void RF_Write_Buff(unsigned char RF_Reg, unsigned char *pBuff, unsigned char Len
 }
 
 /*****************************************
- * ´ÓXL2400TµÄ¼Ä´æÆ÷¶ÁÈ¡¶à¸öÊý¾Ý
- * ²ÎÊý: RFAdress ¶ÁÈ¡Ö¸Áî|¼Ä´æÆ÷µØÖ·
- * ²ÎÊý£º*pBuff   ¶ÁÈ¡µ½µÄÊý¾Ý´æ·ÅµÄµØÖ·
- * ²ÎÊý£ºLen      ÐèÒª¶ÁÈ¡µÄ³¤¶È
+ * ï¿½ï¿½XL2400Tï¿½Ä¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½: RFAdress ï¿½ï¿½È¡Ö¸ï¿½ï¿½|ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½*pBuff   ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ÅµÄµï¿½Ö·
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Len      ï¿½ï¿½Òªï¿½ï¿½È¡ï¿½Ä³ï¿½ï¿½ï¿½
 ******************************************/
 void RF_Read_Buff(unsigned char RF_Reg, unsigned char *pBuff, unsigned char Len)
 {
@@ -125,7 +125,7 @@ void RF_Read_Buff(unsigned char RF_Reg, unsigned char *pBuff, unsigned char Len)
 }
 
 /***********************************************
- * À­¸ßÈí¼þCE
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CE
 ************************************************/
 void RF_CE_High(void)
 {
@@ -133,7 +133,7 @@ void RF_CE_High(void)
 }
 
 /**********************
- * À­µÍÈí¼þCE
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CE
 **********************/
 void RF_CE_Low(void)
 {
@@ -141,9 +141,9 @@ void RF_CE_Low(void)
 }
 
 /********************************************
- * Çå³ýÖÐ¶Ï±ê¼ÇÎ»
- * Çå¿ÕTX-FIFO
- * Çå¿ÕRX-FIFO
+ * ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½ï¿½Î»
+ * ï¿½ï¿½ï¿½TX-FIFO
+ * ï¿½ï¿½ï¿½RX-FIFO
 *********************************************/
 void RF_Refresh_State(void)
 {
@@ -153,8 +153,8 @@ void RF_Refresh_State(void)
 }
 
 /**********************************
- * ÉèÖÃÍ¨Ñ¶Æµµã
- * ²ÎÊý£ºÆµµã
+ * ï¿½ï¿½ï¿½ï¿½Í¨Ñ¶Æµï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½
 **********************************/
 void RF_Set_Chn(unsigned char Chn)
 {
@@ -170,16 +170,16 @@ void RF_Set_Chn(unsigned char Chn)
 }
 
 /********************************************
- * ÅäÖÃ·¢ËÍÓë½ÓÊÕµØÖ·
+ * ï¿½ï¿½ï¿½Ã·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½Ö·
 *********************************************/
 void RF_Set_Address(unsigned char *AddrBuff)
 {
-	RF_Write_Buff(W_REGISTER + TX_ADDR,    AddrBuff, 5); /*ÅäÖÃ·¢ËÍµØÖ·*/
-	RF_Write_Buff(W_REGISTER + RX_ADDR_P0, AddrBuff, 5); /*ÅäÖÃ½ÓÊÕÊý¾ÝÍ¨µÀ0µÄµØÖ·*/
+	RF_Write_Buff(W_REGISTER + TX_ADDR,    AddrBuff, 5); /*ï¿½ï¿½ï¿½Ã·ï¿½ï¿½Íµï¿½Ö·*/
+	RF_Write_Buff(W_REGISTER + RX_ADDR_P0, AddrBuff, 5); /*ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½0ï¿½Äµï¿½Ö·*/
 }
 
 /**********************
- * »ù´ø¸´Î»
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»
  **********************/
 #if FEATURE_RF_RESET_ENABLE
 void RF_Reset(void)
@@ -192,7 +192,7 @@ void RF_Reset(void)
 #endif
 
 /***************************************
- * ÅäÖÃ·¢Éä¹¦ÂÊ
+ * ï¿½ï¿½ï¿½Ã·ï¿½ï¿½ä¹¦ï¿½ï¿½
 ****************************************/
 void RF_Set_Power(unsigned char Power)
 {
@@ -203,56 +203,46 @@ void RF_Set_Power(unsigned char Power)
 }
 
 /*************************
- * ÅäÖÃRFÎª·¢ËÍÄ£Ê½
+ * ï¿½ï¿½ï¿½ï¿½RFÎªï¿½ï¿½ï¿½ï¿½Ä£Ê½
  *************************/
 #if FEATURE_RF_TX_ENABLE
 void RF_Tx_Mode(void)
 {
    unsigned char Mode_Buff[3] = {0};
-   Mode_Buff[0] = 0xee; // ÆôÓÃCRCÐ£Ñé 2×Ö½Ú
+   Mode_Buff[0] = 0xee; // ï¿½ï¿½ï¿½ï¿½CRCÐ£ï¿½ï¿½ 2ï¿½Ö½ï¿½
    Mode_Buff[1] = 0x80;
    RF_Write_Buff(W_REGISTER + CFG_TOP, Mode_Buff, 2);
    RF_Read_Buff(CFG_TOP, Mode_Buff, 3);
    RF_Refresh_State();
-   Delay_ms(10);
    RF_Set_Chn(76);
+   Delay_ms(10); // ï¿½È´ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½È¶ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 }
 #endif
 
 /************************
- * ÅäÖÃRFÎª½ÓÊÕÄ£Ê½
+ * ï¿½ï¿½ï¿½ï¿½RFÎªï¿½ï¿½ï¿½ï¿½Ä£Ê½
 ************************/
 void RF_Rx_Mode(void)
 {
    unsigned char Mode_Buff[3] = {0};
-   Mode_Buff[0] = 0xee; // ÆôÓÃCRCÐ£Ñé 2×Ö½Ú
+   Mode_Buff[0] = 0xee; // ï¿½ï¿½ï¿½ï¿½CRCÐ£ï¿½ï¿½ 2ï¿½Ö½ï¿½
    Mode_Buff[1] = 0xc0; 
    RF_Write_Buff(W_REGISTER + CFG_TOP, Mode_Buff, 2);
    RF_Read_Buff(CFG_TOP, Mode_Buff, 3);
    RF_Refresh_State();
+   RF_Set_Chn(76-1);
    RF_CE_High();
    RF_Read_Buff(CFG_TOP, Mode_Buff, 3);
-   Delay_ms(10);
-   RF_Set_Chn(76-1);
+   Delay_ms(10); // ï¿½È´ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½È¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯RX FIFO
 }
 
 #if FEATURE_RF_TX_ENABLE
-static unsigned char color_t = 0;
 unsigned char RF_TX_Data(unsigned char* tx_buff)
 {
 	unsigned char Temp = 0;
 	
-    RF_Refresh_State();               	 // Ë¢ÐÂ×´Ì¬
-	color_t++;
-	if(color_t > 15)
-		color_t = 0;
-
-	tx_buff[0] = (0xff & 0x0ff);        // Ñ¡ÖÐÈ«²¿ÊÖ»·£¨Í¨µÀ£©
-	tx_buff[1] = ((0xff >> 8) & 0x0ff);
-	tx_buff[2] = ((color_t << 4) | 2);  // ÑÕÉ«+Ä£Ê½   
-	tx_buff[3] = (0x20);                    
-	tx_buff[4] = ((tx_buff[0] + tx_buff[1] + tx_buff[2] + tx_buff[3]) & 0x0ff);                
-	RF_Write_Buff(W_TX_PLOAD, tx_buff, 5); // ÌîÐ´·¢ËÍÄÚÈÝ
+    RF_Refresh_State();               	 // Ë¢ï¿½ï¿½×´Ì¬
+	RF_Write_Buff(W_TX_PLOAD, tx_buff, RF_PAYLOAD_SIZE);
 
 #if FEATURE_SOFT_UART_ENABLE
 	UART_Send_Byte(tx_buff[0]); 
@@ -262,9 +252,9 @@ unsigned char RF_TX_Data(unsigned char* tx_buff)
 	UART_Send_Byte(tx_buff[4]); 
 #endif
 
-	RF_CE_High(); // À­¸ßCE
+	RF_CE_High(); // ï¿½ï¿½ï¿½ï¿½CE
 	Delay_1ms();
-	RF_CE_Low();  // À­µÍCE
+	RF_CE_Low();  // ï¿½ï¿½ï¿½ï¿½CE
 	Delay_1ms();
 	
 	Temp = RF_SPI_Read_Reg(RF_STATUS);
@@ -272,54 +262,51 @@ unsigned char RF_TX_Data(unsigned char* tx_buff)
 	UART_Send_Byte(Temp); 
 #endif
 
-	// »ñÈ¡×´Ì¬¼Ä´æÆ÷µÄ×´Ì¬
-	if(RF_SPI_Read_Reg(RF_STATUS) & TX_DS) // ´¥·¢·¢ËÍÖÐ¶Ï
+	if(Temp & TX_DS)
 	{
-		RF_Refresh_State(); // Çå¿ÕFIFO Çå³ýÖÐ¶Ï±ê¼ÇÎ»
+		RF_Refresh_State(); // ï¿½ï¿½ï¿½FIFO ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½ï¿½Î»
 		return 0x20;
 	}
 	else
 	{
-		RF_Refresh_State(); // Çå¿ÕFIFO Çå³ýÖÐ¶Ï±ê¼ÇÎ»
+		RF_Refresh_State(); // ï¿½ï¿½ï¿½FIFO ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½ï¿½Î»
 		return 0;	
 	}
 }
 #endif
 
 /*************************************************
- * ½ÓÊÕÊý¾Ýº¯Êý
- * ²ÎÊý£º½ÓÊÕµ½µÄÊý¾Ý ´æ·ÅµÄµØÖ·
- * ·µ»ØÖµ£º½ÓÊÕµ½Êý¾Ý·µ»Ø1 Ã»½ÓÊÕµ½Êý¾Ý·µ»Ø0
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ýºï¿½ï¿½ï¿½
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ÅµÄµï¿½Ö·
+ * ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Ý·ï¿½ï¿½ï¿½1 Ã»ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Ý·ï¿½ï¿½ï¿½0
 **************************************************/
 unsigned char RF_RX_Data(unsigned char* rx_buff)
 {
 	unsigned char received = 0;
+	unsigned char payload_length;
+	unsigned char i;
 
 	TRISB  = 0B00000000;
 	if(key_control.key_rec_flag_pb == 0)
 	{
-		if(RF_SPI_Read_Reg(RF_STATUS) & RX_DR) // ´¥·¢½ÓÊÕÖÐ¶Ï
+		if(RF_SPI_Read_Reg(RF_STATUS) & RX_DR) // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
 		{
-			RF_CE_Low(); // À­µÍCE
-			soft_recieve_control.data_length_count = RF_SPI_Read_Reg(R_RX_PL_WID);
-			if(soft_recieve_control.data_length_count == 5)
+			RF_CE_Low(); // ï¿½ï¿½ï¿½ï¿½CE
+			payload_length = RF_SPI_Read_Reg(R_RX_PL_WID);
+			if(payload_length == RF_PAYLOAD_SIZE)
 			{
 				CSN = 0;
 				RF_SPI_Write_Byte(R_RX_PLOAD);
-				rx_buff[0] = RF_SPI_Read_Byte();
-				rx_buff[1] = RF_SPI_Read_Byte();
-				rx_buff[2] = RF_SPI_Read_Byte();
-				rx_buff[3] = RF_SPI_Read_Byte();
-				rx_buff[4] = RF_SPI_Read_Byte();
+				for(i = 0; i < RF_PAYLOAD_SIZE; i++)
+				{
+					rx_buff[i] = RF_SPI_Read_Byte();
+				}
 				CSN = 1;
-				Soft_Decode(); 				  // ½ÓÊÕÂë´¦Àíº¯Êý
+				sleep_control.sleep_count = 13;
+				sleep_control.recieve_sleep_flag = 1;
 				received = 1;
 			}
-			else
-			{
-				soft_recieve_control.data_length_count = 0;
-			}
-			RF_Refresh_State();               // Çå¿ÕFIFO Çå³ýÖÐ¶Ï±ê¼ÇÎ»
+			RF_Refresh_State();               // ï¿½ï¿½ï¿½FIFO ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½ï¿½Î»
 			RF_CE_High();
 		}
 	}
@@ -355,16 +342,38 @@ void XL2400T_Init(void)
 	RF_Write_Buff(W_REGISTER + PGA_SETTING, gRfBuffer, 5);
 	Delay_1ms();
 
-	RF_SPI_Write_Reg(W_REGISTER + SETUP_AW,  0xAF);      // µØÖ·³¤¶È5×Ö½Ú
-	RF_Set_Address(RF_Test_Adrress);                     // µØÖ·
+	RF_SPI_Write_Reg(W_REGISTER + SETUP_AW,  0xAF);      // ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½5ï¿½Ö½ï¿½
+	RF_Set_Address(RF_Test_Adrress);                     // ï¿½ï¿½Ö·
 	RF_SPI_Write_Reg(W_REGISTER + RF_SETUP,  C_DR_250K); // 
-    RF_SPI_Write_Reg(W_REGISTER + EN_RXADDR, 0x01);      // ÆôÓÃÊý¾ÝÍ¨µÀ0
-	RF_SPI_Write_Reg(W_REGISTER + RX_PW_PX,  5);         // ÅäÖÃ5¸ö½ÓÊÕÊý¾Ý
-	RF_SPI_Write_Reg(W_REGISTER + EN_AA,     0x00);      // ÅäÖÃÓ¦´ðÊý¾ÝÍ¨µÀµÀ
-    RF_SPI_Write_Reg(W_REGISTER + DYNPD,     0x00);      // ¹Ø±ÕËùÓÐÊý¾ÝÍ¨µÀµÄ¶¯Ì¬³¤¶È¹¦ÄÜ
-	RF_SPI_Write_Reg(W_REGISTER + FEATURE,   0x18);      // ²»Ê¹ÄÜ¶¯Ì¬³¤¶È¹¦ÄÜ
-	RF_SPI_Write_Reg(W_REGISTER + SETUP_RETR,0x33);      // ÖØ´«3´Î ÖØ´«¼ä¸ô1ms
+    RF_SPI_Write_Reg(W_REGISTER + EN_RXADDR, 0x01);      // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½0
+	RF_SPI_Write_Reg(W_REGISTER + RX_PW_PX,  RF_PAYLOAD_SIZE); // ï¿½ï¿½ï¿½Ã¹Ì¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Øºï¿½
+	RF_SPI_Write_Reg(W_REGISTER + EN_AA,     0x00);      // ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½
+    RF_SPI_Write_Reg(W_REGISTER + DYNPD,     0x00);      // ï¿½Ø±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½Ä¶ï¿½Ì¬ï¿½ï¿½ï¿½È¹ï¿½ï¿½ï¿½
+	RF_SPI_Write_Reg(W_REGISTER + FEATURE,   0x18);      // ï¿½ï¿½Ê¹ï¿½Ü¶ï¿½Ì¬ï¿½ï¿½ï¿½È¹ï¿½ï¿½ï¿½
+	RF_SPI_Write_Reg(W_REGISTER + SETUP_RETR,0x33);      // ï¿½Ø´ï¿½3ï¿½ï¿½ ï¿½Ø´ï¿½ï¿½ï¿½ï¿½1ms
 	RF_Set_Power(RF_TX_Power);
+}
+
+unsigned char XL2400T_Self_Test(void)
+{
+	unsigned char result;
+
+	result = 1;
+	if(RF_SPI_Read_Reg(EN_RXADDR) != 0x01)
+	{
+		result = 0;
+	}
+	if(RF_SPI_Read_Reg(RX_PW_PX) != RF_PAYLOAD_SIZE)
+	{
+		result = 0;
+	}
+	if(RF_SPI_Read_Reg(FEATURE) != 0x18)
+	{
+		result = 0;
+	}
+
+	TRISB = 0B00000001;
+	return result;
 }
 
 

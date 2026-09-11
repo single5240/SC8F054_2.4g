@@ -67,49 +67,40 @@ void Key_Event(void)
 	if(key_control.key_pb && key_control.key_long_flag_pb)  // 长按事件
     {
 		key_control.key_pb = 0;                    // 清除按键事件标志位
-        if(!soft_recieve_control.recieve_bit)      // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
-		{
-			led_control.led_color            = 0;
-			led_control.led_mode             = 0;
-			sleep_control.sleep_count        = 3;  // 睡眠计数清零
-			sleep_control.sleep_flag         = 1;  // 置位休眠标志，进入休眠
-			sleep_control.recieve_sleep_flag = 0;
-        }
+		led_control.led_color            = LED_OFF;
+		led_control.led_mode             = LED_MODE_OFF;
+		sleep_control.sleep_count        = 3;
+		sleep_control.sleep_flag         = 1;
+		sleep_control.recieve_sleep_flag = 0;
     }
     else if(key_control.key_pb == 1)                // 短按事件
     {
 	    key_control.key_pb = 0;   				    // 清除短按键事件标志位
-		if(!soft_recieve_control.recieve_bit)       // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
-		{
-            sleep_control.sleep_count 	      = 20; // 按下按键30m内不进入休眠，=10防止未接收数据进入休眠
-			sleep_control.recieve_sleep_flag  = 1;  // 置1，不进入休眠
-			soft_recieve_control.randnum_flag = 0;  // 禁止获取随机数
+		sleep_control.sleep_count 	     = 20;
+		sleep_control.recieve_sleep_flag = 1;
  
-			if(led_control.led_mode == LED_MODE_COLOR_CHANGE)
-            {
-				led_control.led_color = LED_OFF;
-                led_control.led_mode  = LED_MODE_OFF;
-            }
-			else if(led_control.led_color == LED_OFF)
-            {
-				led_control.led_color = LED_RED;
-                led_control.led_mode  = LED_MODE_ON;
-            }
-			else if(led_control.led_color < LED_TURQUOISE)
-            {
-				led_control.led_color++;
-                led_control.led_mode = LED_MODE_ON;
-            }
-			else
-            {
-				led_control.led_color      = LED_RED;
-                led_control.led_mode       = LED_MODE_COLOR_CHANGE;
-                led_control.led_mode_count = 0;
-                led_control.color_p        = 0;
-            }
-			
-										   
-		}
+		if(led_control.led_mode == LED_MODE_COLOR_CHANGE)
+        {
+			led_control.led_color = LED_OFF;
+            led_control.led_mode  = LED_MODE_OFF;
+        }
+		else if(led_control.led_color == LED_OFF)
+        {
+			led_control.led_color = LED_RED;
+            led_control.led_mode  = LED_MODE_ON;
+        }
+		else if(led_control.led_color < LED_BLUE)
+        {
+			led_control.led_color++;
+            led_control.led_mode = LED_MODE_ON;
+        }
+		else
+        {
+			led_control.led_color      = LED_RED;
+            led_control.led_mode       = LED_MODE_COLOR_CHANGE;
+            led_control.led_mode_count = 0;
+            led_control.color_p        = LED_OFF;
+        }
     }
 }
 

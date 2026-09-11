@@ -43,7 +43,7 @@ void map_0_255_to_1000_0(U8 red_duty, U8 green_duty, U8 blue_duty)
 /**
  * 函数功能：LED颜色配置函数
  * 功能说明：根据目标LED颜色（led_color）更新RGB三色的占空比，仅在颜色变化且非特定模式（mode≠1）时执行
- * 核心逻辑：通过switch-case匹配预设颜色，设置红（R）、绿（G）、蓝（B）三色的目标占空比，最终同步到"设定占空比"变量供模式控制使用
+	 * 核心逻辑：通过switch-case匹配红、绿、蓝三种颜色，设置RGB占空比
  * 备注：占空比范围为0-255，0表示该颜色通道关闭，255表示该颜色通道最大亮度
  */
 void Led_Color_Prg(void)
@@ -78,78 +78,6 @@ void Led_Color_Prg(void)
 				led_control.blue_duty  = 255;
 				PWMCON0    = 0X16;	
 				break;
-	        case LED_PINK:             // 粉色
-				led_control.red_duty   = 255;
-				led_control.green_duty = 0;
-				led_control.blue_duty  = 60;
-				PWMCON0    = 0X16;
-				break;
-	        case LED_WHITE:            // 白色
-				led_control.red_duty   = 255;
-				led_control.green_duty = 255;
-				led_control.blue_duty  = 255;
-				PWMCON0    = 0X16;	
-				break;
-	        case LED_YELLOW:           // 黄色
-				led_control.red_duty   = 160;
-				led_control.green_duty = 50;
-				led_control.blue_duty  = 0;
-				PWMCON0    = 0X16;	
-				break;
-	        case LED_LIGHT_GREEN:      // 淡绿
-				led_control.red_duty   = 74;
-				led_control.green_duty = 255;
-				led_control.blue_duty  = 63;
-				PWMCON0    = 0X16;
-				break;
-	        case LED_LIGHT_BLUE:       // 淡蓝
-				led_control.red_duty   = 50;
-				led_control.green_duty = 100;
-				led_control.blue_duty  = 255;
-				PWMCON0    = 0X16; 
-				break;
-	        case LED_LIGHT_PINK:       // 淡粉
-				led_control.red_duty   = 205;
-				led_control.green_duty = 43;
-				led_control.blue_duty  = 63;
-				PWMCON0 = 0X16; 
-				break;
-	        case LED_LIGHT_YELLOW:     // 淡黄
-				led_control.red_duty   = 255;
-				led_control.green_duty = 160;
-				led_control.blue_duty  = 1;
-				PWMCON0 = 0X16; 
-				break;
-	        case LED_PURPLE:           // 紫色
-				led_control.red_duty   = 255;
-				led_control.green_duty = 20;
-				led_control.blue_duty  = 200;
-				PWMCON0 = 0X16; 
-				break;
-	        case LED_ORANGE:           // 橙色
-				led_control.red_duty   = 255;
-				led_control.green_duty = 20;
-				led_control.blue_duty  = 0;
-				PWMCON0 = 0X16; 
-				break;
-	        case LED_DARK_GREEN:       // 深绿
-				led_control.red_duty   = 10;
-				led_control.green_duty = 180;
-				led_control.blue_duty  = 50;
-				PWMCON0 = 0X16; 
-				break;
-	        case LED_CYAN:             // 蓝绿
-				led_control.red_duty   = 0;
-				led_control.green_duty = 191;
-				led_control.blue_duty  = 255;
-				PWMCON0 = 0X16;
-				break;
-	        case LED_TURQUOISE:        // 宝石绿
-				led_control.red_duty   = 100;
-				led_control.green_duty = 255;
-				led_control.blue_duty  = 0;
-				PWMCON0 = 0X16;
-				break;
 	        default:
 	        break;
 	    } 
@@ -159,12 +87,6 @@ void Led_Color_Prg(void)
 		led_control.set_green_duty = led_control.green_duty;
 		led_control.set_blue_duty  = led_control.blue_duty;
 
-		if((led_control.led_mode == LED_MODE_FADING) && (led_control.breath_flag == 1))
-		{
-			led_control.red_duty   = 0;
-			led_control.green_duty = 0;
-			led_control.blue_duty  = 0;
-		}
 	}
 	
 	map_0_255_to_1000_0(led_control.red_duty, led_control.green_duty, led_control.blue_duty);

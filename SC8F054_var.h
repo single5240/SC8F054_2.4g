@@ -26,7 +26,6 @@ typedef struct
 
 typedef struct
 {
-	unsigned char breath_flag;           // 呼吸灯标志位
 	unsigned char red_duty;              // 红色占空比
 	unsigned char green_duty;            // 绿色占空比
 	unsigned char blue_duty;             // 蓝色占空比
@@ -36,66 +35,37 @@ typedef struct
 	unsigned char led_color;             // 灯颜色切换
 	unsigned char led_mode;              // 灯控模式
 	unsigned char led_mode_count;        // 灯控模式计数器
-	unsigned char breath_time;           // 呼吸灯计数
-	unsigned char breath_start_off_time; // 呼吸
-	unsigned char mode_t;				 // 记录模式
 	unsigned char color_p;				 // 记录颜色
 	unsigned char count_1ms;             // 计数1ms
 	unsigned char count_10ms;            // 计数10ms
 	unsigned char count_100ms;           // 计数100ms
-	unsigned char count_1000ms;          // 计数1000ms
-	unsigned char last_quick_led;        // 获取上一次灯的颜色
-	unsigned char breat_time_control;    // 呼吸灯和贪吃蛇的控制时间
-	unsigned char quick_control;         // 快闪控制标志位
-	unsigned char add_data;         	 // 通道获取值
 } LED_CONTROL;
 
 typedef struct
 {
-	unsigned      jump_flag      : 1; // 电平跳变标志位
-	unsigned      recieve_bit    : 1; // 接收锁定标志位 
-	unsigned      clear_bit      : 1; // 清除接收状态标志位 
-	unsigned      rand_flag      : 1; // 随机数生成标志位 
-	unsigned      Snowflake_flag : 1; // 雪花轮闪激活标志位 
-	unsigned      randnum_flag   : 1; // 随机数获取使能标志位
-	unsigned      quick_flag     : 1; // 快闪使能标志位
-	unsigned      dmx_flag       : 1; // dmx接收标志位
-	unsigned char stroge_flag;        // 间隔快闪标志位   
-	unsigned char start_flag;         // 接收数据开始标志位
-	unsigned char high_count;         // 接受码计数
-	unsigned char recieve_data;       // 接受码数据获取
-	unsigned char data_bit_count;     // 接受码数据获取
-	unsigned char data_length_count;  // 接收数据长度
-	unsigned char dalay_time;         // DMX刷时间，保持快闪和频闪同步
-	unsigned char function_data;      // 获取协议功能
-	unsigned char temp0;			  // 记录上一次的数组第0个的数据，防止帧重复
-	unsigned char temp1;    		  // 记录上一次的数组第1个的数据，防止帧重复
-	unsigned char temp2;			  // 记录上一次的数组第2个的数据，防止帧重复
-	unsigned char temp3;			  // 记录上一次的数组第3个的数据，防止帧重复
-	unsigned char rand_num;           // 获取1~8随机数
-	unsigned char Channel;			  // 获取通道1-8的数据
-	unsigned char dmx_count;          // dmx接收次数
-	unsigned char Snowflake_dit_off;  // 随机计数
-	unsigned      flow_active     : 1; // 0x40流水灯效已启动，后续帧不复位相位
-	unsigned      last_frame_valid: 1; // 上一普通控制帧有效
-} SOFT_RECIEVE_CONTROL;
+	unsigned char sequence;
+	unsigned char color;
+	unsigned char state;
+	unsigned char wait_10ms;
+	unsigned char led_10ms;
+} PINGPONG_CONTROL;
 
 // 放在这里是变成全局变量，调用了ny8_lib.h文件就可以用，这样做，空间会变大一些
 extern SLEEP_CONTROL        sleep_control;
-extern SOFT_RECIEVE_CONTROL soft_recieve_control;
 extern KEY_CONTROL          key_control;
 extern LED_CONTROL          led_control;
-extern unsigned char        soft_data[34];
+extern volatile PINGPONG_CONTROL pingpong_control;
+extern unsigned char        rf_data[RF_PAYLOAD_SIZE];
 
 void Key_Scan(void);
 void Key_Event(void);
 void Key_Check_Time(void);
 void Init_System(void);
 void Led_Color_Prg(void);
+void PingPong_Init(void);
+void PingPong_Task(void);
+void PingPong_10ms(void);
 void Sleep_Mode(void);
-void Soft_Decode(void);
-void Soft_Count(void);
-void Rand_num(void);
 void map_0_255_to_1000_0(U8 red_duty, U8 green_duty, U8 blue_duty);
 #if FEATURE_SOFT_UART_ENABLE
 void Uart_Send_Receive(void);
@@ -110,6 +80,7 @@ void RF_Tx_Mode(void);
 #endif
 void RF_Rx_Mode(void);
 void XL2400T_Init(void);
+unsigned char XL2400T_Self_Test(void);
 #if FEATURE_RF_TX_ENABLE
 unsigned char RF_TX_Data(unsigned char* tx_buff);
 #endif
