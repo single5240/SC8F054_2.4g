@@ -1,3 +1,6 @@
+# ===== Cursor 本地配置 / skill（放个人 Agent Store） =====
+.cursor/
+
 # ===== SCMCU IDE / XC8 编译产物 =====
 output/
 
