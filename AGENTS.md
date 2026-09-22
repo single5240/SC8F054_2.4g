@@ -19,17 +19,17 @@
 
 ### 命令行编译（已验证）
 
-1. 优先使用 skill / 脚本（与下方步骤等价）：
+1. 优先使用个人 Agent Store skill `sc8f054-xc8-build`（勿把 `.cursor/` 提交进仓库）：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .cursor/skills/sc8f054-xc8-build/scripts/build.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\Cursor\AgentStores\cursor_agent_stores\u449044618\files\skills\sc8f054-xc8-build\scripts\build.ps1" -ProjectDir .
 ```
 
 2. 手动流程：把 IDE `data\bin` 加入 `PATH`；按 `.scw` 的 `SourceFile` 对每个 `.c` 做 `--pass1` 生成 `output\<base>.p1`；再把全部 `.p1` 链接为 `output\SC8F054_timer_C.hex`。
 3. Pass1 示例参数：`--chip=SC8F054 -Q --opt=-local,-asmfile,+asm,+speed,-space,-debug --warn=-9 --outdir=output --objdir=output --pass1 <file.c> -Ooutput\<base>.p1`
 4. Link 示例参数：同上 chip/opt/warn/outdir，另加 `--asmlist --summary=default,-psect,-class,+mem,-hex,-file --output=intel --runtime=default,+clear,+init,-keep,+osccal,-download,-resetbits,+config,+clib,+plib`，输出 `-Ooutput\SC8F054_timer_C.hex`
 5. 从 `output\build_log.txt` 读取 Memory Summary。CLI 默认 CONFIG 可能与 IDE 注入的 `config=FEFF,FAEF,FFFF,FFFF,` 不同；量产烧录以 IDE 编译的 CfgCRC 为准。
-6. 详细说明见 `.cursor/skills/sc8f054-xc8-build/SKILL.md`（个人 Agent Store 同步名：`sc8f054-xc8-build`）。
+6. 详细说明见个人 Agent Store：`skills/sc8f054-xc8-build/SKILL.md`。
 
 ## 主要文件职责
 
