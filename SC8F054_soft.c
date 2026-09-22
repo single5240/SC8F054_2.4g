@@ -62,13 +62,18 @@ void Soft_Decode(void)
 		soft_recieve_control.flow_active = 0;
 	}
 
-	/* DMX帧按通道逐帧更新，不参与普通控制帧去重。 */
+	/* DMX帧按通道逐帧更新，不参与普通控制帧去重；通道0为全局同步校相。 */
 	if(command == 0xA0)
 	{
 		sleep_control.sleep_count = 13;
 		sleep_control.recieve_sleep_flag = 1;
 		soft_recieve_control.randnum_flag = 0;
-		if(soft_data[0] == led_control.add_data)
+		if(soft_data[0] == 0)
+		{
+			/* 全局同步：统一慢闪/快闪/频闪相位 */
+			led_control.led_mode_count = 0;
+		}
+		else if(soft_data[0] == led_control.add_data)
 		{
 			led_control.led_mode       = (soft_data[1] >> 4) & 0x0f;
 			led_control.led_color      = LED_OFF;
@@ -76,15 +81,23 @@ void Soft_Decode(void)
 			led_control.set_red_duty   = (soft_data[1] & 0x0f) * 17;
 			led_control.set_green_duty = ((soft_data[2] >> 4) & 0x0f) * 17;
 			led_control.set_blue_duty  = (soft_data[2] & 0x0f) * 17;
-			led_control.led_mode_count = 0;
 			if(led_control.led_mode == LED_MODE_OFF)
 			{
+				led_control.led_mode_count = 0;
 				led_control.red_duty   = 0;
 				led_control.green_duty = 0;
 				led_control.blue_duty  = 0;
 			}
+			else if(led_control.led_mode == LED_MODE_ON)
+			{
+				led_control.led_mode_count = 0;
+				led_control.red_duty   = led_control.set_red_duty;
+				led_control.green_duty = led_control.set_green_duty;
+				led_control.blue_duty  = led_control.set_blue_duty;
+			}
 			else
 			{
+				/* 动态灯效只更新参数，相位由通道0同步帧校相 */
 				led_control.red_duty   = led_control.set_red_duty;
 				led_control.green_duty = led_control.set_green_duty;
 				led_control.blue_duty  = led_control.set_blue_duty;
@@ -215,10 +228,10 @@ void Soft_Decode(void)
 			led_control.led_mode_count = 0;
 			break;
 
-		case 0xE0:                                  // 波浪恢复上次颜色
+		case 0xE0:                                  // 常亮
 			if(selected)
 			{
-				led_control.led_color = led_control.last_quick_led;
+				led_control.led_color = color;
 				led_control.led_mode  = LED_MODE_ON;
 				led_control.led_mode_count = 0;
 			}
