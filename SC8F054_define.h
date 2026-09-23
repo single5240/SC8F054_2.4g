@@ -2,11 +2,10 @@
 #define SC8F054_DEFINE_H
 
 #define KEY     RB0
-//#define DODAT   RB0
+#define DATA    RB0
 #define UART_TX RB1
-#define CSN     RB0
 #define SCK     RB4
-#define DATA    RB5
+#define CSN     RB5
 
 /* 当前产品为纯接收、无调试串口版本，未使用功能默认不参与编译。 */
 #define FEATURE_RF_RESET_ENABLE  0

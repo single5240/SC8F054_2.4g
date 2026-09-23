@@ -39,7 +39,7 @@ static void RF_SPI_Write_Byte(unsigned char buff)
 *************************************************/
 static unsigned char RF_SPI_Read_Byte(void)
 {
-	TRISB  = 0B00100000;
+	TRISB  = 0B00000001;
     unsigned char  buff = 0;
 	unsigned char  i    = 0;
 
