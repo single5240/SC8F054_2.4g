@@ -185,24 +185,31 @@ void Soft_Decode(void)
 			}
 			break;
 
-		case 0xB0:                                  // ¼ä¸ô¿ìÉÁ
-			value = soft_data[2] & 0x03;
+		case 0xB0:                                  // STROBE pulse / QUICK equal blink
+			value = soft_data[2] & 0x0f;
 			if(selected)
 			{
 				led_control.quick_control = 1;
 				led_control.led_mode_count = 0;
-				if(value == 2)
+				if((value & 0x03) == 2)
 				{
 					led_control.led_color = LED_OFF;
 					led_control.led_mode = LED_MODE_ON;
 				}
+				else if((value == 4) || (value == 5))
+				{
+					/* TX QUICK 4/5: equal blink; count cleared for multi-RX lock. */
+					led_control.led_color = led_control.last_quick_led;
+					led_control.led_mode = LED_MODE_QUICK;
+				}
 				else
 				{
+					/* STROBE on (low nibble 0/1): one-shot pulse. */
 					led_control.led_color = led_control.last_quick_led;
 					led_control.led_mode = LED_MODE_QUICK1;
 				}
 			}
-			else if((value == 2) && led_control.quick_control)
+			else if(((value & 0x03) == 2) && led_control.quick_control)
 			{
 				led_control.led_color = led_control.last_quick_led;
 				led_control.led_mode = LED_MODE_QUICK1;
