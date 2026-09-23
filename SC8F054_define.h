@@ -1,20 +1,12 @@
 #ifndef SC8F054_DEFINE_H
 #define SC8F054_DEFINE_H
 
-/* V1.1: KEY/DATA=RB0(分时), G=RB1, B=RB2, R=RB3, CSN=RB4, SCK=RB5 */
 #define KEY     RB0
-#define DATA    RB0
+//#define DODAT   RB0
 #define UART_TX RB1
-#define CSN     RB4
-#define SCK     RB5
-
-/* PORTB bit masks: RB0 KEY/DATA, RB4 CSN, RB5 SCK */
-#define TRISB_SPI_OUT     0B00000000 /* SPI write: all out */
-#define TRISB_SPI_DATA_IN 0B00000001 /* SPI read: DATA/RB0 in */
-#define TRISB_KEY_IN      0B00000001 /* idle: KEY/RB0 in, CSN out */
-#define PORTB_IDLE        0B00011110 /* CSN=1, RGB high, SCK=0, DATA latch0 */
-#define WPDB_KEY          0B00000001 /* RB0 pulldown for KEY */
-#define IOCB_KEY          0B00000001 /* RB0 IOC wake */
+#define CSN     RB0
+#define SCK     RB4
+#define DATA    RB5
 
 /* 当前产品为纯接收、无调试串口版本，未使用功能默认不参与编译。 */
 #define FEATURE_RF_RESET_ENABLE  0

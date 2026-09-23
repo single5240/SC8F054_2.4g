@@ -11,7 +11,7 @@ unsigned char RF_Test_Adrress[5]={0x23, 0x24, 0x25, 0x26, 0x27}; // RF地址
 static void RF_SPI_Write_Byte(unsigned char buff)
 {
 	unsigned char i = 0;
-	TRISB  = TRISB_SPI_OUT;
+	TRISB  = 0B00000000;
     for(i = 0; i < 8; i++)
 	{
         SCK = 0;
@@ -39,11 +39,11 @@ static void RF_SPI_Write_Byte(unsigned char buff)
 *************************************************/
 static unsigned char RF_SPI_Read_Byte(void)
 {
-	unsigned char  buff = 0;
+	TRISB  = 0B00100000;
+    unsigned char  buff = 0;
 	unsigned char  i    = 0;
 
-	TRISB  = TRISB_SPI_DATA_IN; /* DATA/RB0 input; CSN/SCK remain out */
-	for(i = 0; i < 8; i++)
+    for(i = 0; i < 8; i++)
     {
         SCK = 0;
         buff = buff << 1;
@@ -295,12 +295,12 @@ unsigned char RF_RX_Data(unsigned char* rx_buff)
 {
 	unsigned char received = 0;
 
+	TRISB  = 0B00000000;
 	if(key_control.key_rec_flag_pb == 0)
 	{
-		TRISB = TRISB_SPI_OUT;
-		if(RF_SPI_Read_Reg(RF_STATUS) & RX_DR)
+		if(RF_SPI_Read_Reg(RF_STATUS) & RX_DR) // 触发接收中断
 		{
-			RF_CE_Low();
+			RF_CE_Low(); // 拉低CE
 			soft_recieve_control.data_length_count = RF_SPI_Read_Reg(R_RX_PL_WID);
 			if(soft_recieve_control.data_length_count == 5)
 			{
@@ -312,27 +312,27 @@ unsigned char RF_RX_Data(unsigned char* rx_buff)
 				rx_buff[3] = RF_SPI_Read_Byte();
 				rx_buff[4] = RF_SPI_Read_Byte();
 				CSN = 1;
-				Soft_Decode();
+				Soft_Decode(); 				  // 接收码处理函数
 				received = 1;
 			}
 			else
 			{
 				soft_recieve_control.data_length_count = 0;
 			}
-			RF_Refresh_State();
+			RF_Refresh_State();               // 清空FIFO 清除中断标记位
 			RF_CE_High();
 		}
 	}
 
 	Delay_3us();
-	CSN   = 1;
-	TRISB = TRISB_KEY_IN;
+	TRISB  = 0B00000001;
 	Delay_3us();
 	Key_Scan();
 	Key_Event();
 	Delay_3us();
 	return received;
 }
+
 
 void XL2400T_Init(void)
 {

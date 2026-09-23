@@ -44,14 +44,14 @@ void Key_Scan(void)
         }
         else // 按键持续抬起
         {
-            if(key_control.key_up_time_pb > 50)
+            if(key_control.key_up_time_pb > 50)  // 按键抬起时间大于50MS   按下20MS+松手30MS
             {
-                key_control.key_down_pb = 0;
-                key_control.key_rec_flag_pb = 0;
-                if(key_control.key_flag_pb && (key_control.key_long_flag_pb == 0))
+                key_control.key_down_pb = 0;     // 清除按键按下标志位，恢复按键空闲状态标识
+                if(key_control.key_flag_pb && (key_control.key_long_flag_pb == 0)) // 短按生效
                 {
-					key_control.key_flag_pb 	= 0;
-                    key_control.key_pb      	= 1;
+					key_control.key_rec_flag_pb = 0;
+					key_control.key_flag_pb 	= 0; // 清除短按标志位，防止短按事件重复触发
+                    key_control.key_pb      	= 1; // 置位按键事件标志，触发后续短按事件处理
                 }
             }
         }

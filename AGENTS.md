@@ -11,25 +11,10 @@
 ## 工具链与资源约束
 
 - 工程文件：`SC8F054_timer_C.scw`，目标芯片由工程配置为 `SC8F054`。
-- IDE 安装路径：`E:\data\software\SC8F054_DK\SC8F054_DK\IDE\SCMCU_IDE_V2.00.17_Beta3\SCMCU_IDE_V2.00.17_Beta3`；命令行 XC8：同目录下 `data\bin\xc8.exe`（V1.45）。
-- 使用 SCMCU IDE V2.00.17 Beta3 附带的 Microchip MPLAB XC8 V1.45 编译器；工程采用速度优化并关闭调试信息（`.scw`：`OptValue=-local,-asmfile,+asm,+speed,-space,-debug`，`WarningValue=-9`）。未经要求不要升级编译器、替换芯片头文件或改动工程格式。
+- 使用 SCMCU IDE V2.00.17 Beta3 附带的 Microchip MPLAB XC8 V1.45 编译器；工程采用速度优化并关闭调试信息。未经要求不要升级编译器、替换芯片头文件或改动工程格式。
 - 编译器较旧，按 C90 风格编写：局部变量放在代码块开头，避免依赖 C99/C11 语法和新库特性。
-- 当前工程配置基线约占用 1956/2048 words Flash（95.5%）和 88/160 bytes RAM（55.0%）。新增功能前必须评估空间，优先复用现有状态和位域，不使用动态内存，避免 `stdlib`、随机数库、递归、大型查表和复杂抽象。
+- 当前工程配置基线约占用 2030/2048 words Flash（99.1%）和 116/160 bytes RAM（72.5%），余量极紧。新增功能前必须评估空间，优先复用现有状态和位域，不使用动态内存，避免 `stdlib`、随机数库、递归、大型查表和复杂抽象。
 - 现有 `.c/.h` 文件为 GBK、CRLF。修改时保持原编码和换行，避免整文件编码转换造成无关差异；`AGENTS.md` 使用 UTF-8。
-
-### 命令行编译（已验证）
-
-1. 优先使用个人 Agent Store skill `sc8f054-xc8-build`（勿把 `.cursor/` 提交进仓库）：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\Cursor\AgentStores\cursor_agent_stores\u449044618\files\skills\sc8f054-xc8-build\scripts\build.ps1" -ProjectDir .
-```
-
-2. 手动流程：把 IDE `data\bin` 加入 `PATH`；按 `.scw` 的 `SourceFile` 对每个 `.c` 做 `--pass1` 生成 `output\<base>.p1`；再把全部 `.p1` 链接为 `output\SC8F054_timer_C.hex`。
-3. Pass1 示例参数：`--chip=SC8F054 -Q --opt=-local,-asmfile,+asm,+speed,-space,-debug --warn=-9 --outdir=output --objdir=output --pass1 <file.c> -Ooutput\<base>.p1`
-4. Link 示例参数：同上 chip/opt/warn/outdir，另加 `--asmlist --summary=default,-psect,-class,+mem,-hex,-file --output=intel --runtime=default,+clear,+init,-keep,+osccal,-download,-resetbits,+config,+clib,+plib`，输出 `-Ooutput\SC8F054_timer_C.hex`
-5. 从 `output\build_log.txt` 读取 Memory Summary。CLI 默认 CONFIG 可能与 IDE 注入的 `config=FEFF,FAEF,FFFF,FFFF,` 不同；量产烧录以 IDE 编译的 CfgCRC 为准。
-6. 详细说明见个人 Agent Store：`skills/sc8f054-xc8-build/SKILL.md`。
 
 ## 主要文件职责
 
@@ -44,8 +29,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\Cursor\Ag
 
 ## 硬件与并发注意事项
 
-- 硬件 V1.1 引脚：`KEY`/`DATA`=RB0（分时复用）、`G`=RB1、`B`=RB2、`R`=RB3、`CSN`=RB4、`SCK`=RB5。`RF_RX_Data` 仅在按键空闲时把 RB0 切到 SPI；恢复按键前必须 `CSN=1`。Flash 紧张时不要再往该路径堆锁定旁路逻辑。
-- RGB PWM 分配为：绿色 PWM1/RB1、红色 PWM2/RB3、蓝色 PWM4/RB2。占空比为 10 位，更新时必须同时正确处理高 2 位和低 8 位。空闲 `PORTB` 必须保持 `CSN`(RB4)=1。
+- `RB0` 同时定义为 `KEY` 和 XL2400T 的 `CSN`，属于既有的分时复用设计。无线收包流程会切换 `TRISB`；修改按键或 SPI 代码时必须检查方向切换、端口恢复和调用时序，不能把两者当作独立引脚。
+- RGB PWM 分配为：绿色 PWM1/RB1、红色 PWM2/RB3、蓝色 PWM4/RB2。占空比为 10 位，更新时必须同时正确处理高 2 位和低 8 位。
 - Timer2 中断提供约 1 ms 基础时基。中断中只做短小、确定时间的计数和灯效更新，不加入阻塞延时、无线通信或复杂计算。
 - 涉及共享状态、位域、计数器和端口方向时，检查中断与主循环之间的竞态、计数溢出和更新顺序。
 - XL2400T 进入休眠前会掉电。唤醒后必须按参考工程先调用 `RF_Rx_Mode()` 恢复接收状态，再恢复系统时钟和执行 `Init_System()`；不要擅自增加完整的 `XL2400T_Init()`，避免改变参考低功耗时序和 Flash 占用。
