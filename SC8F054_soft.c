@@ -180,7 +180,6 @@ void Soft_Decode(void)
 				led_control.breath_flag            = mode;
 				led_control.breath_start_off_time  = 10;
 				led_control.led_mode_count         = 10;
-				led_control.breat_time_control     = 10;
 				led_control.led_mode               = LED_MODE_FADING;
 			}
 			break;

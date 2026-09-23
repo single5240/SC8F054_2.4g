@@ -45,7 +45,9 @@ typedef struct
 	unsigned char count_100ms;           // 计数100ms
 	unsigned char count_1000ms;          // 计数1000ms
 	unsigned char last_quick_led;        // 获取上一次灯的颜色
-	unsigned char breat_time_control;    // 呼吸灯和贪吃蛇的控制时间
+	unsigned char breath_step_r;
+	unsigned char breath_step_g;
+	unsigned char breath_step_b;
 	unsigned char quick_control;         // 快闪控制标志位
 	unsigned char add_data;         	 // 通道获取值
 } LED_CONTROL;
@@ -85,7 +87,7 @@ extern SLEEP_CONTROL        sleep_control;
 extern SOFT_RECIEVE_CONTROL soft_recieve_control;
 extern KEY_CONTROL          key_control;
 extern LED_CONTROL          led_control;
-extern unsigned char        soft_data[34];
+extern unsigned char        soft_data[5];
 
 void Key_Scan(void);
 void Key_Event(void);

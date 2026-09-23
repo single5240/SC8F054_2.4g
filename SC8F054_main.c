@@ -2,7 +2,7 @@
 #include "SC8F054_define.h"
 #include "SC8F054_var.h"
 
-unsigned char soft_data[34] = {0}; // ????????????
+unsigned char soft_data[5] = {0}; // ????????????
 static unsigned char rand_seed = 0xA5;
 
 void main(void)
@@ -47,6 +47,36 @@ void Rand_num(void)
 	}
 }
 
+/* ISR-only: apply set duty (on) or force off */
+static void Led_Set_OnOff(unsigned char on)
+{
+	if(on)
+	{
+		PWMCON0 = 0x16;
+		led_control.red_duty   = led_control.set_red_duty;
+		led_control.green_duty = led_control.set_green_duty;
+		led_control.blue_duty  = led_control.set_blue_duty;
+	}
+	else
+	{
+		PWMCON0 = 0x00;
+		led_control.red_duty   = 0;
+		led_control.green_duty = 0;
+		led_control.blue_duty  = 0;
+	}
+}
+
+/* period ticks, first half on; wrap count */
+static void Led_Blink_Cycle(unsigned char period, unsigned char half)
+{
+	led_control.led_mode_count++;
+	if(led_control.led_mode_count >= period)
+	{
+		led_control.led_mode_count = 0;
+	}
+	Led_Set_OnOff(led_control.led_mode_count < half);
+}
+
 /***********************************************
 ?????????Timer_Isr
 ????????????????
@@ -79,10 +109,7 @@ void interrupt INT_Isr()
 				{
 					case LED_MODE_OFF:          // ???
 					{
-						led_control.red_duty   = 0;
-						led_control.green_duty = 0;
-						led_control.blue_duty  = 0;
-						PWMCON0                = 0x00;	
+						Led_Set_OnOff(0);
 						break;  
 					}     
 					case LED_MODE_ON:           // ????
@@ -101,52 +128,14 @@ void interrupt INT_Isr()
 						}
 						break; 
 					}
-					case LED_MODE_SLOW:         // ???? 
+					case LED_MODE_SLOW:         // ???? 112 tick, half 56
 					{		
-						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 112)
-						{
-							led_control.led_mode_count = 0; // ???0.25s??????	
-						}
-
-						if(led_control.led_mode_count < 56)
-			  		  	{
-							led_control.red_duty   = led_control.set_red_duty;
-							led_control.green_duty = led_control.set_green_duty;
-							led_control.blue_duty  = led_control.set_blue_duty;
-							PWMCON0 = 0x16;
-						}
-						else
-			          	{
-							PWMCON0 = 0x00;
-							led_control.red_duty   = 0;
-							led_control.green_duty = 0;
-							led_control.blue_duty  = 0;			
-						} 
+						Led_Blink_Cycle(112, 56);
 						break;  
 					} 
 					case LED_MODE_QUICK:           // equal on/off 42/42 of 84 ticks (~420/420 ms)
 					{
-						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 84)
-						{
-							led_control.led_mode_count = 0;
-						}
-
-						if(led_control.led_mode_count < 42)
-						{
-							PWMCON0 			   = 0x16;
-							led_control.red_duty   = led_control.set_red_duty;
-							led_control.green_duty = led_control.set_green_duty;
-							led_control.blue_duty  = led_control.set_blue_duty;
-						}
-						else
-			          	{
-							PWMCON0 			   = 0x00;
-							led_control.red_duty   = 0;
-							led_control.green_duty = 0;
-							led_control.blue_duty  = 0;			
-						} 
+						Led_Blink_Cycle(84, 42);
 						break;  
 					}
 					case LED_MODE_QUICK1:          // 0xB0 STROBE one-shot ~420 ms then hold off
@@ -155,43 +144,17 @@ void interrupt INT_Isr()
 						if(led_control.led_mode_count < 42)
 						{
 							led_control.led_mode_count++;
-							PWMCON0 = 0x16;
-							led_control.red_duty   = led_control.set_red_duty;
-							led_control.green_duty = led_control.set_green_duty;
-							led_control.blue_duty  = led_control.set_blue_duty;
+							Led_Set_OnOff(1);
 						}
 						else
 						{
-							PWMCON0 = 0x00;
-							led_control.red_duty   = 0;
-							led_control.green_duty = 0;
-							led_control.blue_duty  = 0;
+							Led_Set_OnOff(0);
 						}
 						break;
 					}
 					case LED_MODE_STROBE:       // ???
 					{
-						PWMCON0 = 0x16;
-						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 14)
-						{
-							led_control.led_mode_count = 0;
-						}
-						
-						if(led_control.led_mode_count < 7)
-			          	{
-							led_control.red_duty   = led_control.set_red_duty;
-							led_control.green_duty = led_control.set_green_duty;
-							led_control.blue_duty  = led_control.set_blue_duty;
-							PWMCON0                = 0x16;
-						}
-						else
-			          	{
-							PWMCON0                = 0x00;
-							led_control.red_duty   = 0;
-							led_control.green_duty = 0;
-							led_control.blue_duty  = 0;
-						}
+						Led_Blink_Cycle(14, 7);
 						break; 
 					}                         
 					case LED_MODE_COLOR_CHANGE: 	  // 15????
@@ -206,114 +169,63 @@ void interrupt INT_Isr()
 								led_control.led_color = 1;
 							}
 						}
-						if(led_control.led_mode_count < 10)
-						{
-							PWMCON0 = 0x16;
-							led_control.red_duty   = led_control.set_red_duty;
-							led_control.green_duty = led_control.set_green_duty;
-							led_control.blue_duty  = led_control.set_blue_duty;
-						}
-						else
-						{
-							PWMCON0 = 0x00;
-							led_control.red_duty   = 0;
-							led_control.green_duty = 0;
-							led_control.blue_duty  = 0;
-						}
+						Led_Set_OnOff(led_control.led_mode_count < 10);
 						break;
 					}                   
-					case LED_MODE_FADING:       	 // ??????
+					case LED_MODE_FADING:       	 // breath: step from breath_step_* table cache
 					{
 						PWMCON0 = 0x16;
-						if(led_control.breath_flag == 1) // ????
+						if(led_control.led_mode_count)
 						{
-							if(led_control.led_mode_count)
-					        {
-								led_control.breath_time++;
-					            if(led_control.breath_time >= led_control.breath_start_off_time)
-					            {
-									led_control.breath_time = 0;
-									led_control.led_mode_count--;
-					
-					                if(led_control.red_duty >= led_control.set_red_duty)
-					                {
-					                	led_control.red_duty = led_control.set_red_duty;
-					                }
+							led_control.breath_time++;
+							if(led_control.breath_time >= led_control.breath_start_off_time)
+							{
+								led_control.breath_time = 0;
+								led_control.led_mode_count--;
+								if(led_control.breath_flag == 1)
+								{
+									if(led_control.red_duty >= led_control.set_red_duty)
+										led_control.red_duty = led_control.set_red_duty;
 									else
-									{
-										led_control.red_duty = led_control.red_duty +  led_control.set_red_duty / led_control.breat_time_control;
-									}
+										led_control.red_duty = led_control.red_duty + led_control.breath_step_r;
 									if(led_control.green_duty >= led_control.set_green_duty)
-									{
 										led_control.green_duty = led_control.set_green_duty;
-									}
 									else
-									{
-										led_control.green_duty = led_control.green_duty +  led_control.set_green_duty / led_control.breat_time_control;
-									}
+										led_control.green_duty = led_control.green_duty + led_control.breath_step_g;
 									if(led_control.blue_duty >= led_control.set_blue_duty)
-									{
 										led_control.blue_duty = led_control.set_blue_duty;
-									}
 									else
+										led_control.blue_duty = led_control.blue_duty + led_control.breath_step_b;
+									if(led_control.led_mode_count == 0)
 									{
-										led_control.blue_duty = led_control.blue_duty +  led_control.set_blue_duty / led_control.breat_time_control;
-									}
-					                if(led_control.led_mode_count <= 0)
-					                {
 										led_control.red_duty   = led_control.set_red_duty;
 										led_control.green_duty = led_control.set_green_duty;
 										led_control.blue_duty  = led_control.set_blue_duty;
-					                }
-					            }
-					        }
-					    }
-					    else
-					    {
-							if(led_control.led_mode_count)
-					        {
-								led_control.breath_time++;
-					            if(led_control.breath_time >= led_control.breath_start_off_time)
-					            {
-									led_control.breath_time = 0;
-									led_control.led_mode_count--;
-					
-					                if(led_control.red_duty <= 0)
-					                {
-					                	led_control.red_duty = 0;
-					                }
-									else
-									{
-										led_control.red_duty = led_control.red_duty - led_control.set_red_duty / led_control.breat_time_control;
 									}
-									
-									if(led_control.green_duty <= 0)
-									{
+								}
+								else
+								{
+									if(led_control.red_duty <= led_control.breath_step_r)
+										led_control.red_duty = 0;
+									else
+										led_control.red_duty = led_control.red_duty - led_control.breath_step_r;
+									if(led_control.green_duty <= led_control.breath_step_g)
 										led_control.green_duty = 0;
-									}
 									else
-									{
-										led_control.green_duty = led_control.green_duty - led_control.set_green_duty / led_control.breat_time_control;
-									}
-										
-									if(led_control.blue_duty <= 0)
-									{
+										led_control.green_duty = led_control.green_duty - led_control.breath_step_g;
+									if(led_control.blue_duty <= led_control.breath_step_b)
 										led_control.blue_duty = 0;
-									}
 									else
+										led_control.blue_duty = led_control.blue_duty - led_control.breath_step_b;
+									if(led_control.led_mode_count == 0)
 									{
-										led_control.blue_duty = led_control.blue_duty - led_control.set_blue_duty / led_control.breat_time_control;
-									}
-										
-					                if(led_control.led_mode_count <= 0)
-					                {
 										led_control.red_duty   = 0;
 										led_control.green_duty = 0;
 										led_control.blue_duty  = 0;
-					                }
-					            }
-					        }
-					    }
+									}
+								}
+							}
+						}
 						break;
 					}
 					default:

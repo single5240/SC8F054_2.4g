@@ -5,7 +5,7 @@
 
 
 KEY_CONTROL 		 key_control 		  = {0,0,0,0,0,0,0,0,0};
-LED_CONTROL 		 led_control 		  = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,ADD_DAT};
+LED_CONTROL 		 led_control 		  = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,ADD_DAT};
 SOFT_RECIEVE_CONTROL soft_recieve_control = {0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0};
 SLEEP_CONTROL        sleep_control        = {1,0,0};
 
