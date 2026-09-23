@@ -47,9 +47,9 @@ void Key_Scan(void)
             if(key_control.key_up_time_pb > 50)  // release stable >50 ms
             {
                 key_control.key_down_pb = 0;     // clear press flag (idle)
+				key_control.key_rec_flag_pb = 0;  // resume RF after any key release
                 if(key_control.key_flag_pb && (key_control.key_long_flag_pb == 0)) // short press valid
                 {
-					key_control.key_rec_flag_pb = 0;
 					key_control.key_flag_pb 	= 0; // clear short-press (once)
                     key_control.key_pb      	= 1; // fire short-press event
                 }

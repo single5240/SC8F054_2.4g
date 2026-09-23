@@ -323,7 +323,7 @@ unsigned char RF_RX_Data(unsigned char* rx_buff)
 	}
 
 	Delay_3us();
-	TRISB  = 0B00000001;
+	TRISB  = 0B00100000;
 	Delay_3us();
 	Key_Scan();
 	Key_Event();

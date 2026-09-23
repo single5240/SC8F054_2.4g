@@ -22,11 +22,11 @@ void Init_System(void)
 	TRISA   = 0B00000000;
 
 	WPUB    = 0B00000000;  // PORTB weak-pull / direction setup
-	WPDB    = 0B00000001;
+	WPDB    = 0B00100000;
 	ODCONB  = 0B00000000;  
 	IOCB    = 0B00000000;
-	TRISB   = 0B00000001; 
-	PORTB 	= 0B00101110; // RB5 CSN high
+	TRISB   = 0B00100000;
+	PORTB 	= 0B00101110; // RB5 KEY/CSN latch high
 	
 	PR2     = 198;		  // Timer2 period base; note: (199+1)*1*(4/16M)=50 us tick unit
 	TMR2IF  = 0; 
@@ -59,7 +59,7 @@ void Init_System(void)
 
 /***********************************************
  * Sleep_Mode
- * Enter low-power sleep; wake on RB0 level change / WDT
+ * Enter low-power sleep; wake on RB5 level change / WDT
  ***********************************************/
 void Sleep_Mode(void)
 {
@@ -103,14 +103,14 @@ void Sleep_Mode(void)
 		OPTION_REG = 0;
 		TRISA 	   = 0B00000000; // all outputs; RA0 unused wake
 		WPUA  	   = 0B00000000; // RA0 pull-up off
-		TRISB 	   = 0B00000001; // RB0 KEY/DATA wake input
-		PORTB 	   = 0B00101110; // RB5 CSN high
-		WPUB  	   = 0B00000000; // RB0 external pull-down
+		TRISB 	   = 0B00100000; // RB5 KEY/CSN wake input
+		PORTB 	   = 0B00101110; // RB5 CSN latch high
+		WPUB  	   = 0B00000000; // RB5 external pull-down
 		PWMCON0    = 0;
 		while(KEY); 
 		OPTION_REG = 0x0F;
 		OSCCON     = 0X72;	     // osc 16 MHz (sleep prep)
-		IOCB 	   = 0B00000001; // Enable RB0 level-change interrupt
+		IOCB 	   = 0B00100000; // Enable RB5 level-change interrupt
 		GIE        = 0;		     // after wake, resume past SLEEP
 		PIE1   	   = 0;	  	     // disable unused peripheral IRQs
 		PIR1       = 0;		     // clear unused IRQ flags

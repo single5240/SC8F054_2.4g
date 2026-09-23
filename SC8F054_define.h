@@ -1,7 +1,7 @@
 #ifndef SC8F054_DEFINE_H
 #define SC8F054_DEFINE_H
 
-#define KEY     RB0
+#define KEY     RB5
 #define DATA    RB0
 #define UART_TX RB1
 #define SCK     RB4
