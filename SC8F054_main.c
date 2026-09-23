@@ -2,7 +2,7 @@
 #include "SC8F054_define.h"
 #include "SC8F054_var.h"
 
-unsigned char soft_data[34] = {0}; // 接收数据数组
+unsigned char soft_data[34] = {0}; // ????????????
 static unsigned char rand_seed = 0xA5;
 
 void main(void)
@@ -24,12 +24,15 @@ void main(void)
 }
 
 /**
- * 函数功能：生成1~8的雪花闪随机数
- * 功能说明：使用1字节LFSR，避免引入stdlib随机数库占用过多Flash。
+ * ?????????????1~8????????????
+ * ????????????1???LFSR??????????stdlib?????????ù???Flash??
  */
 void Rand_num(void)
 {
-	if((soft_recieve_control.rand_flag == 0) && (soft_recieve_control.randnum_flag == 1))
+	/* rand_flag==0 means regenerate. Do not wait for randnum_flag: that
+	 * required a prior snow match, so boot rand_num stayed 0 and 0xF0
+	 * never lit. Timer clears rand_flag about every 1.3 s for rotation. */
+	if(soft_recieve_control.rand_flag == 0)
 	{
 		if(rand_seed & 0x01)
 		{
@@ -45,16 +48,16 @@ void Rand_num(void)
 }
 
 /***********************************************
-函数名称：Timer_Isr
-函数功能：中断服务
-入口参数：无
-出口参数：无
+?????????Timer_Isr
+??????????ж????
+??????????
+???????????
 ************************************************/
 void interrupt INT_Isr()
 {
 	if(TMR2IF)
 	{
-		TMR2IF  = 0;	  // 清中断标志位
+		TMR2IF  = 0;	  // ???ж???λ
 		//Uart_Send_Receive();
 		led_control.count_1ms++;		
 
@@ -74,7 +77,7 @@ void interrupt INT_Isr()
 
 				switch(led_control.led_mode)
 				{
-					case LED_MODE_OFF:          // 熄灭
+					case LED_MODE_OFF:          // ???
 					{
 						led_control.red_duty   = 0;
 						led_control.green_duty = 0;
@@ -82,7 +85,7 @@ void interrupt INT_Isr()
 						PWMCON0                = 0x00;	
 						break;  
 					}     
-					case LED_MODE_ON:           // 常亮
+					case LED_MODE_ON:           // ????
 					{
 						led_control.red_duty   = led_control.set_red_duty;
 						led_control.green_duty = led_control.set_green_duty;
@@ -90,7 +93,7 @@ void interrupt INT_Isr()
 						
 						if((led_control.blue_duty == 0) && (led_control.green_duty == 0) && (led_control.red_duty == 0))
 						{
-							PWMCON0 = 0x00;     // 关闭PWM1，PWM2，PWM4这样才可以全部关闭
+							PWMCON0 = 0x00;     // ???PWM1??PWM2??PWM4???????????????
 						}
 						else
 						{
@@ -98,12 +101,12 @@ void interrupt INT_Isr()
 						}
 						break; 
 					}
-					case LED_MODE_SLOW:         // 慢闪 
+					case LED_MODE_SLOW:         // ???? 
 					{		
 						led_control.led_mode_count++;
 						if(led_control.led_mode_count >= 112)
 						{
-							led_control.led_mode_count = 0; // 大约0.25s闪烁一次	
+							led_control.led_mode_count = 0; // ???0.25s??????	
 						}
 
 						if(led_control.led_mode_count < 56)
@@ -122,7 +125,7 @@ void interrupt INT_Isr()
 						} 
 						break;  
 					} 
-					case LED_MODE_QUICK:           // 快闪 
+					case LED_MODE_QUICK:           // ???? 
 					{
 						led_control.led_mode_count++;
 						if(led_control.led_mode_count >= 28)
@@ -146,15 +149,13 @@ void interrupt INT_Isr()
 						} 
 						break;  
 					}
-					case LED_MODE_QUICK1:          // 间隔快闪
+					case LED_MODE_QUICK1:          // 0xB0 ???????壺?? 16 ???? 160 ms???????
 					{
-						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 32)
-						{
-							led_control.led_mode_count = 0;
-						}
+						/* ??? 0xB0 ??? led_mode_count ?????????????
+						 * ?????????????????????????????????????? */
 						if(led_control.led_mode_count < 16)
 						{
+							led_control.led_mode_count++;
 							PWMCON0 = 0x16;
 							led_control.red_duty   = led_control.set_red_duty;
 							led_control.green_duty = led_control.set_green_duty;
@@ -169,7 +170,7 @@ void interrupt INT_Isr()
 						}
 						break;
 					}
-					case LED_MODE_STROBE:       // 频闪
+					case LED_MODE_STROBE:       // ???
 					{
 						PWMCON0 = 0x16;
 						led_control.led_mode_count++;
@@ -194,7 +195,7 @@ void interrupt INT_Isr()
 						}
 						break; 
 					}                         
-					case LED_MODE_COLOR_CHANGE: 	  // 15色轮播
+					case LED_MODE_COLOR_CHANGE: 	  // 15????
 					{
 						led_control.led_mode_count++;
 						if(led_control.led_mode_count >= 20)
@@ -222,10 +223,10 @@ void interrupt INT_Isr()
 						}
 						break;
 					}                   
-					case LED_MODE_FADING:       	 // 呼吸灯
+					case LED_MODE_FADING:       	 // ??????
 					{
 						PWMCON0 = 0x16;
-						if(led_control.breath_flag == 1) // 渐亮
+						if(led_control.breath_flag == 1) // ????
 						{
 							if(led_control.led_mode_count)
 					        {
@@ -326,7 +327,7 @@ void interrupt INT_Isr()
 					led_control.count_100ms = 0;
 					led_control.count_1000ms++;
 					
-					if(led_control.count_1000ms > 11) // 1300ms在进行雪花轮闪功能1.3S刷新随机数
+					if(led_control.count_1000ms > 11) // 1300ms????????????????1.3S????????
 					{
 						soft_recieve_control.rand_flag = 0;
 						led_control.count_1000ms = 0;
@@ -334,7 +335,7 @@ void interrupt INT_Isr()
 					
 					if(sleep_control.sleep_count < 20000)
 					{
-						sleep_control.sleep_count++; // 睡眠计数
+						sleep_control.sleep_count++; // ??????
 					}
 				}
 			}

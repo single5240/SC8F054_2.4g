@@ -51,7 +51,7 @@
 #define LED_MODE_SLOW		  3    // 慢闪
 #define LED_MODE_QUICK        4    // 快闪
 #define LED_MODE_STROBE       5    // 频闪
-#define LED_MODE_QUICK1       6    // 间隔快闪
+#define LED_MODE_QUICK1       6    // 0xB0 单次脉冲，约 160 ms 后保持灭
 #define LED_MODE_FADING       14   // 呼吸灯
 #define LED_MODE_COLOR_CHANGE 16   // 15色轮播
 
