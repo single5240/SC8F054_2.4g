@@ -22,11 +22,11 @@ void Init_System(void)
 	TRISA   = 0B00000000;
 
 	WPUB    = 0B00000000;  // 配置PORTB输出情况
-	WPDB    = 0B00000001;
+	WPDB    = WPDB_KEY;
 	ODCONB  = 0B00000000;  
 	IOCB    = 0B00000000;
-	TRISB   = 0B00000001; 
-	PORTB 	= 0B00001110; // 
+	TRISB   = TRISB_KEY_IN; 
+	PORTB 	= PORTB_IDLE; // 
 	
 	PR2     = 198;		  // 设定Timer初始值，定时周期是200*4/16M=50uS
 	TMR2IF  = 0; 
@@ -95,7 +95,7 @@ void Sleep_Mode(void)
 		led_control.green_duty 	  			   = 0;
 		led_control.blue_duty  	  			   = 0;
 		key_control.key_rec_flag_pb            = 0;
-		TRISB 	   = 0B00000000; // 关闭所有输出，RB5口做唤醒输入
+		TRISB 	   = TRISB_SPI_OUT; // 关闭所有输出，RB5口做唤醒输入
 		RF_CE_Low(); // 拉低CE
 		RF_SPI_Write_Reg(W_REGISTER + CFG_TOP, 0xe0);
 		PWMTL 	   = 0; // PWM0,PWM1,PWM2,PWM3周期
@@ -107,14 +107,14 @@ void Sleep_Mode(void)
 		OPTION_REG = 0;
 		TRISA 	   = 0B00000000; // 关闭所有输出，RA0口做唤醒输入
 		WPUA  	   = 0B00000000; // RA0 开上拉电阻
-		TRISB 	   = 0B00000001; // 关闭所有输出，RB5口做唤醒输入
-		PORTB 	   = 0B00001110; // 
-		WPUB  	   = 0B00000000; // RB5开上拉电阻	
+		TRISB 	   = TRISB_KEY_IN;
+		PORTB 	   = PORTB_IDLE;
+		WPUB  	   = 0B00000000;
 		PWMCON0    = 0;
 		while(KEY); 
 		OPTION_REG = 0x0F;
 		OSCCON     = 0X72;	     // 配置振荡为16M,
-		IOCB 	   = 0B00000001; // 允许RB5的IO口电平变化中断
+		IOCB 	   = IOCB_KEY; // 允许RB5的IO口电平变化中断
 		GIE        = 0;		     // 唤醒后执行SLEEP后程序;
 		PIE1   	   = 0;	  	     // 关闭不需要的中断
 		PIR1       = 0;		     // 必须清不需要的中断标志位
@@ -138,8 +138,8 @@ void Sleep_Mode(void)
 			RBIE       = 0; // 允许PORTB电平变化中断
 			RBIF       = 0; // 清中断标志 
 		}
-		PORTB 	   = 0B00001110; //
-		TRISB      = 0B00000000;
+		PORTB 	   = PORTB_IDLE; //
+		TRISB      = TRISB_SPI_OUT;
 		RF_Rx_Mode();
 		OPTION_REG = 0x00;
 		OSCCON     = 0x70;	// 16MHZ,内部振荡器用作系统时钟,CONFIG关闭WDT时必需软件打开WDT
