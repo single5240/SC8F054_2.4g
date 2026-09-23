@@ -3,55 +3,55 @@
 #include "SC8F054_var.h"	
 
 /**
- * 函数名称：按键扫描函数
- * 功能说明：检测按键状态（按下/抬起），并更新相应的按键状态标志位，通常需要周期性调用此函数进行按键检测
+ * Key_Scan
+ * Detect press/release and update key state flags; call periodically.
  */
 void Key_Scan(void)
 {
-	if (KEY)                                  // 检测到按键被按下
+	if (KEY)                                  // key pressed
     {
-        if(!key_control.key_down_pb)          // 如果是刚按下（按键按下标志位未置位）
+        if(!key_control.key_down_pb)          // rising edge (was not pressed)
         {
 			key_control.key_rec_flag_pb  = 1; // 
-            key_control.key_up_pb        = 0; // 清除按键抬起标志
-            key_control.key_down_pb      = 1; // 置位按键按下标志
-            key_control.key_down_time_pb = 0; // 清零按键按下时间计数器
-            key_control.key_up_time_pb   = 0; // 清零抬起时间计数器
-            key_control.key_flag_pb      = 0; // 清除短按标志
-            key_control.key_long_flag_pb = 0; // 清除长按标志
-            key_control.key_pb           = 0; // 清除按键事件标志
+            key_control.key_up_pb        = 0; // clear release flag
+            key_control.key_down_pb      = 1; // set press flag
+            key_control.key_down_time_pb = 0; // reset press timer
+            key_control.key_up_time_pb   = 0; // reset release timer
+            key_control.key_flag_pb      = 0; // clear short-press flag
+            key_control.key_long_flag_pb = 0; // clear long-press flag
+            key_control.key_pb           = 0; // clear event flag
         }
         else                                                                                   
         {
-            if((key_control.key_down_time_pb > KEY_SHORT_DOWN_TIME) && !key_control.key_flag_pb)     // 短按70ms且短按标志未置位时，置位短按标志
+            if((key_control.key_down_time_pb > KEY_SHORT_DOWN_TIME) && !key_control.key_flag_pb)     // short press armed
             {
-                key_control.key_flag_pb = 1;  // 置位短按标志
+                key_control.key_flag_pb = 1;  // set short-press flag
             }
-            if((key_control.key_down_time_pb > KEY_LONG_DOWN_TIME) && !key_control.key_long_flag_pb) // 长按1S且长按标志未置位时，置位长按标志并触发按键事件
+            if((key_control.key_down_time_pb > KEY_LONG_DOWN_TIME) && !key_control.key_long_flag_pb) // long press (~1 s)
             {
-                key_control.key_long_flag_pb = 1; // 置位长按标志
-                key_control.key_pb           = 1; // 置位按键事件标志
+                key_control.key_long_flag_pb = 1; // set long-press flag
+                key_control.key_pb           = 1; // fire key event
             }
         }
     }
     else
     {
-    	// 按键刚抬起
+    	// key just released
         if(!key_control.key_up_pb)                                           
         {
             key_control.key_up_pb      = 1;
             key_control.key_up_time_pb = 0;
         }
-        else // 按键持续抬起
+        else // key still released
         {
-            if(key_control.key_up_time_pb > 50)  // 按键抬起时间大于50MS   按下20MS+松手30MS
+            if(key_control.key_up_time_pb > 50)  // release stable >50 ms
             {
-                key_control.key_down_pb = 0;     // 清除按键按下标志位，恢复按键空闲状态标识
-                if(key_control.key_flag_pb && (key_control.key_long_flag_pb == 0)) // 短按生效
+                key_control.key_down_pb = 0;     // clear press flag (idle)
+                if(key_control.key_flag_pb && (key_control.key_long_flag_pb == 0)) // short press valid
                 {
 					key_control.key_rec_flag_pb = 0;
-					key_control.key_flag_pb 	= 0; // 清除短按标志位，防止短按事件重复触发
-                    key_control.key_pb      	= 1; // 置位按键事件标志，触发后续短按事件处理
+					key_control.key_flag_pb 	= 0; // clear short-press (once)
+                    key_control.key_pb      	= 1; // fire short-press event
                 }
             }
         }
@@ -59,31 +59,31 @@ void Key_Scan(void)
 }
 
 /**
- * 函数名称：按键事件处理函数
- * 功能说明：根据按键标志位判断是长按还是短按，并执行相应的处理逻辑，需要在主循环中调用，处理已触发的按键事件
+ * Key_Event
+ * Handle long/short press actions; call from main loop.
  */
 void Key_Event(void)
 {
-	if(key_control.key_pb && key_control.key_long_flag_pb)  // 长按事件
+	if(key_control.key_pb && key_control.key_long_flag_pb)  // long press
     {
-		key_control.key_pb = 0;                    // 清除按键事件标志位
-        if(!soft_recieve_control.recieve_bit)      // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
+		key_control.key_pb = 0;                    // clear event
+        if(!soft_recieve_control.recieve_bit)      // unlocked (RF not locking key)
 		{
 			led_control.led_color            = 0;
 			led_control.led_mode             = 0;
-			sleep_control.sleep_count        = 3;  // 睡眠计数清零
-			sleep_control.sleep_flag         = 1;  // 置位休眠标志，进入休眠
+			sleep_control.sleep_count        = 3;  // reset sleep counter
+			sleep_control.sleep_flag         = 1;  // enter sleep
 			sleep_control.recieve_sleep_flag = 0;
         }
     }
-    else if(key_control.key_pb == 1)                // 短按事件
+    else if(key_control.key_pb == 1)                // short press
     {
-	    key_control.key_pb = 0;   				    // 清除短按键事件标志位
-		if(!soft_recieve_control.recieve_bit)       // 解锁状态，遥控器未发出指令15种颜色，18种功能控制时
+	    key_control.key_pb = 0;   				    // clear short-press event
+		if(!soft_recieve_control.recieve_bit)       // unlocked (RF not locking key)
 		{
-            sleep_control.sleep_count 	      = 20; // 按下按键30m内不进入休眠，=10防止未接收数据进入休眠
-			sleep_control.recieve_sleep_flag  = 1;  // 置1，不进入休眠
-			soft_recieve_control.randnum_flag = 0;  // 禁止获取随机数
+            sleep_control.sleep_count 	      = 20; // postpone idle sleep after key
+			sleep_control.recieve_sleep_flag  = 1;  // block sleep
+			soft_recieve_control.randnum_flag = 0;  // block random refresh
  
 			if(led_control.led_mode == LED_MODE_COLOR_CHANGE)
             {
@@ -115,38 +115,25 @@ void Key_Event(void)
 
 
 /**
- * 函数名称：按键定时器检测函数
- * 功能说明：负责按键按下和抬起时间的计数，需由定时器中断周期性调用，
- * 通常由定时中断触发，用于实现按键长按、短按的时间判断
+ * Key_Check_Time
+ * Advance press/release timers; call from Timer ISR.
  */
 void Key_Check_Time(void)
 {
-	if(key_control.key_down_pb)                              // 如果按键处于按下状态，累加按下时间计数器
+	if(key_control.key_down_pb)                              // while pressed
 	{
-		key_control.key_down_time_pb++;                      // 累加按下时间   						
-		if(key_control.key_down_time_pb >= KEY_DOWN_TIMEOUT) // 按下达到最大3000ms后保持不变
+		key_control.key_down_time_pb++;                      // press time++
+		if(key_control.key_down_time_pb >= KEY_DOWN_TIMEOUT) // clamp at 3000 ms
 		{    			    
 			key_control.key_down_time_pb = KEY_DOWN_TIMEOUT; 
 		}
 	}
-	if(key_control.key_up_pb)                                // 如果按键处于抬起状态，累加按下时间计数器
+	if(key_control.key_up_pb)                                // while released
 	{
-		key_control.key_up_time_pb++;                        // 累加抬起时间         
-		if(key_control.key_up_time_pb >= KEY_UP_TIMEOUT)     // 抬起达到最大255ms后保持不变
+		key_control.key_up_time_pb++;                        // release time++
+		if(key_control.key_up_time_pb >= KEY_UP_TIMEOUT)     // clamp at 255 ms
 		{				    
 			key_control.key_up_time_pb = KEY_UP_TIMEOUT;
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-

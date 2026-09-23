@@ -2,7 +2,7 @@
 #include "SC8F054_define.h"
 #include "SC8F054_var.h"
 
-unsigned char soft_data[5] = {0}; // ????????????
+unsigned char soft_data[5] = {0}; // 5-byte RF payload
 static unsigned char rand_seed = 0xA5;
 
 void main(void)
@@ -24,8 +24,7 @@ void main(void)
 }
 
 /**
- * ?????????????1~8????????????
- * ????????????1???LFSR??????????stdlib??????????????Flash??
+ * Rand_num: LFSR random 1..8 (no stdlib; save Flash)
  */
 void Rand_num(void)
 {
@@ -78,16 +77,13 @@ static void Led_Blink_Cycle(unsigned char period, unsigned char half)
 }
 
 /***********************************************
-?????????Timer_Isr
-????????????????
-??????????
-???????????
-************************************************/
+ * Timer2 ISR: 1 ms tick, LED modes, idle sleep count
+ ************************************************/
 void interrupt INT_Isr()
 {
 	if(TMR2IF)
 	{
-		TMR2IF  = 0;	  // ??????????
+		TMR2IF  = 0;	  // clear Timer2 IRQ flag
 		//Uart_Send_Receive();
 		led_control.count_1ms++;		
 
@@ -107,12 +103,12 @@ void interrupt INT_Isr()
 
 				switch(led_control.led_mode)
 				{
-					case LED_MODE_OFF:          // ???
+					case LED_MODE_OFF:          // off
 					{
 						Led_Set_OnOff(0);
 						break;  
 					}     
-					case LED_MODE_ON:           // ????
+					case LED_MODE_ON:           // solid on
 					{
 						led_control.red_duty   = led_control.set_red_duty;
 						led_control.green_duty = led_control.set_green_duty;
@@ -120,7 +116,7 @@ void interrupt INT_Isr()
 						
 						if((led_control.blue_duty == 0) && (led_control.green_duty == 0) && (led_control.red_duty == 0))
 						{
-							PWMCON0 = 0x00;     // ???PWM1??PWM2??PWM4???????????????
+							PWMCON0 = 0x00;     // disable PWM1/PWM2/PWM4
 						}
 						else
 						{
@@ -128,7 +124,7 @@ void interrupt INT_Isr()
 						}
 						break; 
 					}
-					case LED_MODE_SLOW:         // ???? 112 tick, half 56
+					case LED_MODE_SLOW:         // slow blink 112 tick, half 56
 					{		
 						Led_Blink_Cycle(112, 56);
 						break;  
@@ -152,12 +148,12 @@ void interrupt INT_Isr()
 						}
 						break;
 					}
-					case LED_MODE_STROBE:       // ???
+					case LED_MODE_STROBE:       // strobe
 					{
 						Led_Blink_Cycle(14, 7);
 						break; 
 					}                         
-					case LED_MODE_COLOR_CHANGE: 	  // 15????
+					case LED_MODE_COLOR_CHANGE: 	  // 15-color cycle
 					{
 						led_control.led_mode_count++;
 						if(led_control.led_mode_count >= 20)
@@ -238,7 +234,7 @@ void interrupt INT_Isr()
 					led_control.count_100ms = 0;
 					led_control.count_1000ms++;
 					
-					if(led_control.count_1000ms > 11) // 1300ms????????????????1.3S????????
+					if(led_control.count_1000ms > 11) // ~1.3 s: allow rand refresh
 					{
 						soft_recieve_control.rand_flag = 0;
 						led_control.count_1000ms = 0;
@@ -246,17 +242,10 @@ void interrupt INT_Isr()
 					
 					if(sleep_control.sleep_count < 20000)
 					{
-						sleep_control.sleep_count++; // ??????
+						sleep_control.sleep_count++; // idle sleep counter
 					}
 				}
 			}
 		}
 	}
 }
-
-
-
-
-
-
-

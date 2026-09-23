@@ -11,21 +11,21 @@ unsigned char rx_sample_count = 0;
 U8 Tx_Rx_Buf[37];
 
 
-// 发送一个字节
+// send one byte
 void UART_Send_Byte(unsigned char dat) 
 {
-    while(uart_tx_busy);  // 等待发送完成
+    while(uart_tx_busy);  // wait TX done
     uart_tx_busy = 1;
     uart_tx_data = dat;
 }
 
-// 检查是否接收到数据
+// check RX ready
 unsigned char UART_Rx_Ready(void)
 {
     return uart_rx_ready;
 }
 
-// 读取接收到的数据
+// read RX byte
 unsigned char UART_Rx_Read(void) 
 {
     uart_rx_ready = 0;
@@ -43,14 +43,14 @@ void Uart_Send_Receive(void)
     {
         switch(tx_state) 
         {
-            case 0: // 发送起始位
+            case 0: // send start bit
                 UART_TX = 0;
                 tx_shift_reg = uart_tx_data;
                 tx_bit_count = 0;
                 tx_state = 1;
                 break;
                 
-            case 1: // 发送数据位 (LSB first)
+            case 1: // send data bits (LSB first)
                 UART_TX = tx_shift_reg & 0x01;
                 tx_shift_reg >>= 1;
                 tx_bit_count++;
@@ -59,7 +59,7 @@ void Uart_Send_Receive(void)
                 }
                 break;
                 
-            case 2: // 发送停止位
+            case 2: // send stop bit
                 UART_TX = 1;
                 uart_tx_busy = 0;
                 tx_state = 0;
@@ -69,30 +69,30 @@ void Uart_Send_Receive(void)
 /*    
     switch(rx_state) 
     {
-        case 0: // 状态0: 等待起始位
+        case 0: // state0: wait start bit
             if (UART_RX == 0) 
-            {  // 检测到下降沿(起始位)
-                rx_state = 1;    // 进入起始位验证
+            {  // falling edge (start)
+                rx_state = 1;    // verify start bit
                 rx_sample_count = 0;
             }
             break;
             
-        case 1: // 状态1: 验证起始位 (在起始位中点采样)
-            if (rx_sample_count == 1) {  // 起始位中点
-                if (UART_RX == 0) {  // 确认是有效起始位
+        case 1: // state1: sample start mid-bit
+            if (rx_sample_count == 1) {  // start mid-bit
+                if (UART_RX == 0) {  // valid start bit
                     rx_shift_reg = 0;
                     rx_bit_count = 0;
-                    rx_state = 2;  // 开始接收数据
+                    rx_state = 2;  // receive data
                 } else {
-                    rx_state = 0;  // 噪声，回到空闲
+                    rx_state = 0;  // noise, idle
                 }
             }
             break;
             
-        case 2: // 状态2: 接收数据位 (在数据位中点采样)
+        case 2: // state2: sample data mid-bit
             if (rx_sample_count == 1) 
             { 
-                // LSB first接收数据
+                // LSB first
                 rx_shift_reg >>= 1;
                 if (UART_RX) 
                 {
@@ -100,21 +100,21 @@ void Uart_Send_Receive(void)
                 }
                 rx_bit_count++;
                 if (rx_bit_count >= 8) {
-                    rx_state = 3;  // 准备接收停止位
+                    rx_state = 3;  // prepare stop bit
                 }
             }
             break;
             
-        case 3: // 状态3: 验证停止位 (在停止位中点采样)
+        case 3: // state3: sample stop mid-bit
             if (rx_sample_count == 1) 
             {
                 if (UART_RX) 
-                {  // 有效的停止位
+                {  // valid stop bit
                 	uart_rx_data = rx_shift_reg;
                     //ring_buf_write(rx_shift_reg);
                     uart_rx_ready = 1;
                 }
-                rx_state = 0;  // 回到空闲状态
+                rx_state = 0;  // back to idle
             }
             break;
     }
@@ -128,55 +128,3 @@ void Uart_Send_Receive(void)
     
 }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

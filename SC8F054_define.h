@@ -7,55 +7,54 @@
 #define SCK     RB4
 #define CSN     RB5
 
-/* 当前产品为纯接收、无调试串口版本，未使用功能默认不参与编译。 */
+/* RX-only product, no debug UART; unused features off by default. */
 #define FEATURE_RF_RESET_ENABLE  0
 #define FEATURE_RF_TX_ENABLE     0
 #define FEATURE_SOFT_UART_ENABLE 0
 
-#define ADD_DAT               14   // 默认逻辑通道，与参考工程保持一致
+#define ADD_DAT               14   // default logic channel (match reference)
 
-#define SECOND_US_MIN         15   // 捕获遥控器发出的协议头的高电平波形最小范围
-#define SECOND_US_MAX         25   // 捕获遥控器发出的协议头的高电平波形最大范围
-#define NUM0_US_MIN		      3    // 捕获遥控器发出的数据位是0的高电平波形最小范围
-#define NUM0_US_MAX		      7    // 捕获遥控器发出的数据位是0的高电平波形最小范围
-#define NUM1_US_MIN		      8    // 捕获遥控器发出的数据位是1的高电平波形最小范围
-#define NUM1_US_MAX		      12   // 捕获遥控器发出的数据位是1的高电平波形最大范围
+#define SECOND_US_MIN         15   // protocol header high pulse min (us)
+#define SECOND_US_MAX         25   // protocol header high pulse max (us)
+#define NUM0_US_MIN		      3    // data bit 0 high pulse min (us)
+#define NUM0_US_MAX		      7    // data bit 0 high pulse max (us)
+#define NUM1_US_MIN		      8    // data bit 1 high pulse min (us)
+#define NUM1_US_MAX		      12   // data bit 1 high pulse max (us)
 
-#define	KEY_UP_TIME           30   // 按键稳定抬起时间
-#define	KEY_UP_TIMEOUT        255  // 按键抬起超时时间
+#define	KEY_UP_TIME           30   // key stable release time
+#define	KEY_UP_TIMEOUT        255  // key release timeout
 
-#define	KEY_SHORT_DOWN_TIME   30   // 按键稳定按下时间
-#define	KEY_LONG_DOWN_TIME    1000 // 按键长按时间
-#define	KEY_DOWN_TIMEOUT      3000 // 按键按下超时
+#define	KEY_SHORT_DOWN_TIME   30   // key stable press time
+#define	KEY_LONG_DOWN_TIME    1000 // key long-press time
+#define	KEY_DOWN_TIMEOUT      3000 // key press timeout
 
-#define LED_OFF               0    // 熄灭
-#define LED_RED               1    // 红色
-#define LED_GREEN             2    // 绿色
-#define LED_BLUE              3    // 蓝色
-#define LED_PINK              4    // 粉色
-#define LED_WHITE             5    // 白色
-#define LED_YELLOW            6    // 黄色
-#define LED_LIGHT_GREEN       7    // 浅绿色
-#define LED_LIGHT_BLUE        8    // 浅蓝色
-#define LED_LIGHT_PINK        9    // 浅粉色
-#define LED_LIGHT_YELLOW      10   // 浅黄色
-#define LED_PURPLE            11   // 紫色
-#define LED_ORANGE            12   // 橙色
-#define LED_DARK_GREEN        13   // 深绿色
-#define LED_CYAN              14   // 蓝绿色
-#define LED_TURQUOISE         15   // 宝石绿色
+#define LED_OFF               0    // off
+#define LED_RED               1    // red
+#define LED_GREEN             2    // green
+#define LED_BLUE              3    // blue
+#define LED_PINK              4    // pink
+#define LED_WHITE             5    // white
+#define LED_YELLOW            6    // yellow
+#define LED_LIGHT_GREEN       7    // light green
+#define LED_LIGHT_BLUE        8    // light blue
+#define LED_LIGHT_PINK        9    // light pink
+#define LED_LIGHT_YELLOW      10   // light yellow
+#define LED_PURPLE            11   // purple
+#define LED_ORANGE            12   // orange
+#define LED_DARK_GREEN        13   // dark green
+#define LED_CYAN              14   // cyan
+#define LED_TURQUOISE         15   // turquoise
 
-#define LED_MODE_OFF          1    // 熄灭
-#define LED_MODE_ON           2    // 常亮
-#define LED_MODE_SLOW		  3    // 慢闪
+#define LED_MODE_OFF          1    // off
+#define LED_MODE_ON           2    // solid on
+#define LED_MODE_SLOW		  3    // slow blink
 #define LED_MODE_QUICK        4    // equal on/off ~420/420 ms
-#define LED_MODE_STROBE       5    // 频闪
+#define LED_MODE_STROBE       5    // strobe
 #define LED_MODE_QUICK1       6    // 0xB0 STROBE one-shot ~420 ms
-#define LED_MODE_FADING       14   // 呼吸灯
-#define LED_MODE_COLOR_CHANGE 16   // 15色轮播
+#define LED_MODE_FADING       14   // breath fade
+#define LED_MODE_COLOR_CHANGE 16   // 15-color cycle
 
 #endif
-
 
 
 

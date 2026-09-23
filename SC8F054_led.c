@@ -22,7 +22,7 @@ static const unsigned char led_rgb_tab[48] = {
 	100, 255,   0
 };
 
-/* 与 led_rgb_tab 对应：duty/10，供呼吸步进缓存 */
+/* Matches led_rgb_tab: duty/10, cached for breath steps */
 static const unsigned char led_rgb_step_tab[48] = {
 	 0,  0,  0,
 	25,  0,  0,

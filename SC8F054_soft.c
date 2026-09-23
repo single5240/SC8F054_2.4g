@@ -3,10 +3,8 @@
 #include "SC8F054_var.h"
 
 /**----------------------------------------------------------------------------------------------**
- **函数名  ：解码函数
- **功能    ：校验并解析XL2400T的5字节数据帧，执行非电机类按键锁定与LED控制逻辑
- **参数    ：无
- **返回值  ：无
+ ** Soft_Decode
+ ** Validate/parse XL2400T 5-byte frame; key lock and LED control (no motor)
  **----------------------------------------------------------------------------------------------**/
 void Soft_Decode(void)
 {
@@ -41,7 +39,7 @@ void Soft_Decode(void)
 		selected = (soft_data[1] & mask) ? 1 : 0;
 	}
 
-	/* 只有本机灯效、全局灯效和本机DMX帧锁定按键；解锁命令必须选中本机。 */
+	/* Lock key only for local/global effects and local DMX; unlock needs local select. */
 	if(command != 0x60)
 	{
 		if((command == 0xD0) || (command == 0xF0) ||
@@ -62,7 +60,7 @@ void Soft_Decode(void)
 		soft_recieve_control.flow_active = 0;
 	}
 
-	/* DMX帧按通道逐帧更新，不参与普通控制帧去重；通道0为全局同步校相。 */
+	/* DMX per-channel each frame, no normal dedupe; ch0 = global phase sync. */
 	if(command == 0xA0)
 	{
 		sleep_control.sleep_count = 13;
@@ -70,7 +68,7 @@ void Soft_Decode(void)
 		soft_recieve_control.randnum_flag = 0;
 		if(soft_data[0] == 0)
 		{
-			/* 全局同步：统一慢闪/快闪/频闪相位 */
+			/* Global sync: align slow/quick/strobe phase */
 			led_control.led_mode_count = 0;
 		}
 		else if(soft_data[0] == led_control.add_data)
@@ -97,7 +95,7 @@ void Soft_Decode(void)
 			}
 			else
 			{
-				/* 动态灯效只更新参数，相位由通道0同步帧校相 */
+				/* Dynamic modes: update params only; phase from ch0 sync */
 				led_control.red_duty   = led_control.set_red_duty;
 				led_control.green_duty = led_control.set_green_duty;
 				led_control.blue_duty  = led_control.set_blue_duty;
@@ -137,7 +135,7 @@ void Soft_Decode(void)
 
 	switch(command)
 	{
-		case 0x20:                                  // 开关及基础灯效
+		case 0x20:                                  // on/off and basic effects
 			if(selected)
 			{
 				led_control.led_color = color;
@@ -151,7 +149,7 @@ void Soft_Decode(void)
 			}
 			break;
 
-		case 0x40:                                  // 流水/跑马
+		case 0x40:                                  // chase / marquee
 			if(!soft_recieve_control.flow_active)
 			{
 				soft_recieve_control.flow_active = 1;
@@ -161,7 +159,7 @@ void Soft_Decode(void)
 			led_control.led_color = (selected && (color != LED_OFF)) ? color : LED_OFF;
 			break;
 
-		case 0x60:                                  // 解锁本机按键
+		case 0x60:                                  // unlock local key
 			if(selected)
 			{
 				soft_recieve_control.recieve_bit = 0;
@@ -171,7 +169,7 @@ void Soft_Decode(void)
 			}
 			break;
 
-		case 0x80:                                  // 10级呼吸渐变
+		case 0x80:                                  // 10-step breath fade
 			if(selected)
 			{
 				led_control.led_color              = color;
@@ -216,14 +214,14 @@ void Soft_Decode(void)
 			}
 			break;
 
-		case 0xC0:                                  // 修改逻辑通道
+		case 0xC0:                                  // change logic channel
 			if(selected)
 			{
 				led_control.add_data = (soft_data[2] & 0x0f) + 1;
 			}
 			break;
 
-		case 0xD0:                                  // 彩虹分组
+		case 0xD0:                                  // rainbow group
 			value = color + led_control.add_data;
 			while(value >= 10)
 			{
@@ -234,7 +232,7 @@ void Soft_Decode(void)
 			led_control.led_mode_count = 0;
 			break;
 
-		case 0xE0:                                  // 常亮
+		case 0xE0:                                  // solid on
 			if(selected)
 			{
 				led_control.led_color = color;
@@ -243,7 +241,7 @@ void Soft_Decode(void)
 			}
 			break;
 
-		case 0xF0:                                  // 雪花轮闪
+		case 0xF0:                                  // snowflake rotate
 			if(mode == soft_recieve_control.rand_num)
 			{
 				if(!soft_recieve_control.Snowflake_flag)
