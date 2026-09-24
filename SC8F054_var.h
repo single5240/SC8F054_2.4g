@@ -121,6 +121,7 @@ void RF_CE_Low(void);
 #if FEATURE_RF_RESET_ENABLE
 void RF_Reset(void);
 #endif
+unsigned char RF_SPI_Read_Reg(unsigned char RF_Reg);
 void RF_SPI_Write_Reg(unsigned char RF_Reg, unsigned char W_Data);
 
 

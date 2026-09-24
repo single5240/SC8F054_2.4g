@@ -197,19 +197,23 @@ void Soft_Decode(void)
 					led_control.led_color = LED_OFF;
 					led_control.led_mode = LED_MODE_ON;
 				}
-				else if((value == 4) || (value == 5))
-				{
-					/* TX QUICK 4/5: equal blink; count cleared for multi-RX lock. */
-					led_control.quick_control = 1;
-					led_control.led_color = led_control.last_quick_led;
-					led_control.led_mode = LED_MODE_QUICK;
-				}
 				else
 				{
-					/* STROBE on (low nibble 0/1): one-shot pulse. */
+					/* On steps carry color in the high nibble. Off steps use 2/6 and color 0. */
 					led_control.quick_control = 1;
+					if(color != LED_OFF)
+					{
+						led_control.last_quick_led = color;
+					}
 					led_control.led_color = led_control.last_quick_led;
-					led_control.led_mode = LED_MODE_QUICK1;
+					if((value == 4) || (value == 5))
+					{
+						led_control.led_mode = LED_MODE_QUICK;
+					}
+					else
+					{
+						led_control.led_mode = LED_MODE_QUICK1;
+					}
 				}
 			}
 			break;

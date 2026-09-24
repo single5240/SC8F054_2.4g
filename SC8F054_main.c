@@ -1,6 +1,7 @@
 #include <sc.h>	
 #include "SC8F054_define.h"
 #include "SC8F054_var.h"
+#include "xl2400t.h"
 
 unsigned char soft_data[5] = {0}; // 5-byte RF payload
 static unsigned char rand_seed = 0xA5;
@@ -33,6 +34,14 @@ void Rand_num(void)
 	 * never lit. Timer clears rand_flag about every 1.3 s for rotation. */
 	if(soft_recieve_control.rand_flag == 0)
 	{
+		/* TMR0/TMR2 differ once INTOSC drifts. First draw also mixes RSSI
+		 * so units that boot together do not share the same snowflake slot. */
+		rand_seed ^= TMR0;
+		rand_seed ^= TMR2;
+		if(soft_recieve_control.rand_num == 0)
+		{
+			rand_seed ^= RF_SPI_Read_Reg(RSSI);
+		}
 		if(rand_seed & 0x01)
 		{
 			rand_seed = (rand_seed >> 1) ^ 0xB8;
@@ -40,6 +49,10 @@ void Rand_num(void)
 		else
 		{
 			rand_seed >>= 1;
+		}
+		if(rand_seed == 0)
+		{
+			rand_seed = 0xA5;
 		}
 		soft_recieve_control.rand_num = (rand_seed & 0x07) + 1;
 		soft_recieve_control.rand_flag = 1;

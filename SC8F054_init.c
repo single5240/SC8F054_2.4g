@@ -123,6 +123,7 @@ void Sleep_Mode(void)
 		asm("clrwdt");
 		asm("sleep");		// enter sleep
 		asm("clrwdt");
+		SWDTEN = 0;			// WDT only for sleep; do not reset while waiting for key release
 		while(KEY); 
 		if(RBIF) 
 		{
