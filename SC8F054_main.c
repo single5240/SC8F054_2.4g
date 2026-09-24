@@ -147,6 +147,11 @@ void interrupt INT_Isr()
 						Led_Blink_Cycle(84, 42);
 						break;  
 					}
+					case LED_MODE_DMX_QUICK:       // DMX mode4 only: 25/25 of 50 ticks (~250/250 ms)
+					{
+						Led_Blink_Cycle(50, 25);
+						break;
+					}
 					case LED_MODE_QUICK1:          // 0xB0 STROBE one-shot ~420 ms then hold off
 					{
 						/* Distinct 0xB0 resets led_mode_count via Soft_Decode. */

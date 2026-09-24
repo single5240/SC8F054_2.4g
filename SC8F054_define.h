@@ -48,9 +48,10 @@
 #define LED_MODE_OFF          1    // off
 #define LED_MODE_ON           2    // solid on
 #define LED_MODE_SLOW		  3    // slow blink
-#define LED_MODE_QUICK        4    // equal on/off ~420/420 ms
+#define LED_MODE_QUICK        4    // equal on/off ~420/420 ms (KEY 0xB0)
 #define LED_MODE_STROBE       5    // strobe
 #define LED_MODE_QUICK1       6    // 0xB0 STROBE one-shot ~420 ms
+#define LED_MODE_DMX_QUICK    7    // DMX mode4 only: equal on/off ~250/250 ms
 #define LED_MODE_FADING       14   // breath fade
 #define LED_MODE_COLOR_CHANGE 16   // 15-color cycle
 

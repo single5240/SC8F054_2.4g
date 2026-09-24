@@ -74,6 +74,9 @@ void Soft_Decode(void)
 		else if(soft_data[0] == led_control.add_data)
 		{
 			led_control.led_mode       = (soft_data[1] >> 4) & 0x0f;
+			/* DMX mode4 only: 250/250 ms. KEY 0xB0 QUICK keeps LED_MODE_QUICK 420/420. */
+			if(led_control.led_mode == LED_MODE_QUICK)
+				led_control.led_mode = LED_MODE_DMX_QUICK;
 			led_control.led_color      = LED_OFF;
 			led_control.color_p        = LED_OFF;
 			led_control.set_red_duty   = (soft_data[1] & 0x0f) * 17;
