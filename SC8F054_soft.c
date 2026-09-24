@@ -113,6 +113,9 @@ void Soft_Decode(void)
 	   (soft_data[2] == soft_recieve_control.temp2) &&
 	   (soft_data[3] == soft_recieve_control.temp3))
 	{
+		/* Same frame still counts as activity: refresh idle sleep timer. */
+		sleep_control.sleep_count = 13;
+		sleep_control.recieve_sleep_flag = 1;
 		soft_recieve_control.data_length_count = 0;
 		soft_recieve_control.Channel = 0;
 		soft_recieve_control.function_data = 0;
@@ -186,31 +189,28 @@ void Soft_Decode(void)
 			value = soft_data[2] & 0x0f;
 			if(selected)
 			{
-				led_control.quick_control = 1;
 				led_control.led_mode_count = 0;
 				if((value & 0x03) == 2)
 				{
+					/* Force off: leave quick/strobe so later non-local off steps do not flash. */
+					led_control.quick_control = 0;
 					led_control.led_color = LED_OFF;
 					led_control.led_mode = LED_MODE_ON;
 				}
 				else if((value == 4) || (value == 5))
 				{
 					/* TX QUICK 4/5: equal blink; count cleared for multi-RX lock. */
+					led_control.quick_control = 1;
 					led_control.led_color = led_control.last_quick_led;
 					led_control.led_mode = LED_MODE_QUICK;
 				}
 				else
 				{
 					/* STROBE on (low nibble 0/1): one-shot pulse. */
+					led_control.quick_control = 1;
 					led_control.led_color = led_control.last_quick_led;
 					led_control.led_mode = LED_MODE_QUICK1;
 				}
-			}
-			else if(((value & 0x03) == 2) && led_control.quick_control)
-			{
-				led_control.led_color = led_control.last_quick_led;
-				led_control.led_mode = LED_MODE_QUICK1;
-				led_control.led_mode_count = 0;
 			}
 			break;
 
@@ -235,6 +235,7 @@ void Soft_Decode(void)
 		case 0xE0:                                  // solid on
 			if(selected)
 			{
+				led_control.quick_control = 0;
 				led_control.led_color = color;
 				led_control.led_mode  = LED_MODE_ON;
 				led_control.led_mode_count = 0;
