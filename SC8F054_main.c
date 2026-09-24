@@ -153,10 +153,10 @@ void interrupt INT_Isr()
 						Led_Blink_Cycle(14, 7);
 						break; 
 					}                         
-					case LED_MODE_COLOR_CHANGE: 	  // 15-color cycle
+					case LED_MODE_COLOR_CHANGE: 	  // 15-color: 25 ticks on, 25 off (250/250 ms)
 					{
 						led_control.led_mode_count++;
-						if(led_control.led_mode_count >= 20)
+						if(led_control.led_mode_count >= 50)
 						{
 							led_control.led_mode_count = 0;
 							led_control.led_color++;
@@ -165,7 +165,7 @@ void interrupt INT_Isr()
 								led_control.led_color = 1;
 							}
 						}
-						Led_Set_OnOff(led_control.led_mode_count < 10);
+						Led_Set_OnOff(led_control.led_mode_count < 25);
 						break;
 					}                   
 					case LED_MODE_FADING:       	 // breath: step from breath_step_* table cache
